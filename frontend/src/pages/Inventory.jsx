@@ -1,17 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-
+import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 
 export default function Inventory() {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
-  const [form, setForm] = useState({
-    itemId: "",
-    quantity: "",
-    price: "",
-    note: "",
-    type: "in",
-  });
   const [newItem, setNewItem] = useState({
     code: "",
     name: "",
@@ -95,26 +88,6 @@ export default function Inventory() {
     }
   };
 
-  // ====== NHẬP / XUẤT KHO ======
-  const handleSubmit = async () => {
-    if (!form.itemId) return alert("⚠️ Vui lòng chọn hàng trước khi thao tác");
-    const endpoint = form.type === "in" ? "/inventory/in" : "/inventory/out";
-    try {
-      await api.post(endpoint, {
-        itemId: Number(form.itemId),
-        quantity: Number(form.quantity),
-        price: Number(form.price),
-        note: form.note,
-      });
-      setForm({ itemId: "", quantity: "", price: "", note: "", type: "in" });
-      await loadItems();
-      alert(form.type === "in" ? "✅ Đã nhập kho" : "✅ Đã xuất kho");
-    } catch (err) {
-      console.error("❌ Lỗi nhập/xuất kho:", err);
-      alert("Lỗi khi nhập hoặc xuất kho");
-    }
-  };
-
   return (
     <div className="p-6 space-y-6">
       <h2 className="text-2xl font-bold">📦 Quản lý kho hàng</h2>
@@ -163,10 +136,7 @@ export default function Inventory() {
                         className="border w-full p-1"
                         value={editingItem.category || ""}
                         onChange={(e) =>
-                          setEditingItem({
-                            ...editingItem,
-                            category: e.target.value,
-                          })
+                          setEditingItem({ ...editingItem, category: e.target.value })
                         }
                       />
                     </td>
@@ -269,60 +239,9 @@ export default function Inventory() {
         </table>
       </div>
 
-      {/* FORM NHẬP / XUẤT */}
+      {/* FORM THÊM HÀNG MỚI + TẠO PHIẾU */}
       <div className="flex gap-6 flex-wrap border-t pt-4">
         <div className="flex-1">
-          <h3 className="font-semibold mb-2">Nhập / Xuất kho</h3>
-          <select
-            className="border p-2 w-full mb-2"
-            value={form.itemId}
-            onChange={(e) => setForm({ ...form, itemId: e.target.value })}
-          >
-            <option value="">Chọn hàng</option>
-            {items.map((i) => (
-              <option key={i.id} value={i.id}>
-                {i.name}
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            className="border p-2 w-full mb-2"
-            placeholder="Số lượng"
-            value={form.quantity}
-            onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-          />
-          <input
-            type="number"
-            className="border p-2 w-full mb-2"
-            placeholder="Giá (nhập hoặc xuất)"
-            value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
-          />
-          <input
-            className="border p-2 w-full mb-2"
-            placeholder="Ghi chú"
-            value={form.note}
-            onChange={(e) => setForm({ ...form, note: e.target.value })}
-          />
-          <div className="flex gap-3">
-            <button
-              onClick={() => setForm({ ...form, type: "in" }) || handleSubmit()}
-              className="bg-green-600 text-white px-4 py-2 rounded"
-            >
-              Nhập kho
-            </button>
-            <button
-              onClick={() => setForm({ ...form, type: "out" }) || handleSubmit()}
-              className="bg-red-600 text-white px-4 py-2 rounded"
-            >
-              Xuất kho
-            </button>
-          </div>
-        </div>
-
-        {/* FORM THÊM HÀNG MỚI */}
-        <div className="flex-1 border-l pl-6">
           <h3 className="font-semibold mb-2">➕ Thêm hàng hóa mới</h3>
           <input
             className="border p-2 w-full mb-2"
@@ -378,20 +297,24 @@ export default function Inventory() {
           >
             Lưu hàng hóa mới
           </button>
-          <Link
-  to="/stock-in"
-  className="px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600"
->
-  Tạo phiếu nhập kho
-</Link>
 
-<Link
-  to="/stock-out"
-  className="ml-3 px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600"
->
-  Tạo phiếu xuất kho
-</Link>
+          <div className="flex gap-3 mt-4 justify-end">
+            <button
+              onClick={() => navigate("/inventory/voucher/new")}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition-all"
+            >
+              <i className="fa-solid fa-file-circle-plus"></i>
+              Tạo phiếu nhập kho
+            </button>
 
+            <button
+              onClick={() => navigate("/inventory/voucher-out/new")}
+              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition-all"
+            >
+              <i className="fa-solid fa-file-export"></i>
+              Tạo phiếu xuất kho
+            </button>
+          </div>
         </div>
       </div>
     </div>
