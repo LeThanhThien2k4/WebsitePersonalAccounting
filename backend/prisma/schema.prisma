@@ -31,9 +31,9 @@ model Receipt {
   date      DateTime
   payer     String
   reason    String?
-  amount    Decimal   @db.Decimal(18,2)
+  amount    Decimal  @db.Decimal(18, 2)
   method    String
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   createdBy Int?
   user      User? @relation(fields: [createdBy], references: [id])
@@ -44,9 +44,9 @@ model Payment {
   date      DateTime
   payee     String
   reason    String?
-  amount    Decimal   @db.Decimal(18,2)
+  amount    Decimal  @db.Decimal(18, 2)
   method    String
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   createdBy Int?
   user      User? @relation(fields: [createdBy], references: [id])
@@ -56,8 +56,8 @@ model Payroll {
   id        Int      @id @default(autoincrement())
   period    String
   employees Json
-  total     Decimal   @db.Decimal(18,2)
-  createdAt DateTime  @default(now())
+  total     Decimal  @db.Decimal(18, 2)
+  createdAt DateTime @default(now())
 
   createdBy Int?
   user      User? @relation(fields: [createdBy], references: [id])
@@ -65,47 +65,48 @@ model Payroll {
 
 model InventoryItem {
   id           Int      @id @default(autoincrement())
-  code         String?  // Mã hàng hóa
+  code         String? // Mã hàng hóa
   name         String
-  category     String?  // Loại hàng (thời trang, nông sản,…)
+  category     String? // Loại hàng (thời trang, nông sản,…)
   unit         String
-  quantity     Int       @default(0)
-  unitPriceIn  Decimal   @default(0) @db.Decimal(18,2)
-  unitPriceOut Decimal   @default(0) @db.Decimal(18,2)
+  quantity     Int      @default(0)
+  unitPriceIn  Decimal  @default(0) @db.Decimal(18, 2)
+  unitPriceOut Decimal  @default(0) @db.Decimal(18, 2)
   note         String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  createdBy Int?
-  user      User?         @relation(fields: [createdBy], references: [id])
+  createdBy  Int?
+  user       User?        @relation(fields: [createdBy], references: [id])
   StockEntry StockEntry[]
   StockOut   StockOut[]
+  items      Item[]
 }
 
 model StockEntry {
   id        Int           @id @default(autoincrement())
   date      DateTime      @default(now())
   quantity  Int
-  unitPrice Decimal        @db.Decimal(18,2)
-  total     Decimal        @db.Decimal(18,2)
-  note      String?
-  item      InventoryItem  @relation(fields: [itemId], references: [id])
-  itemId    Int
-
-  createdBy Int?
-  user      User?          @relation(fields: [createdBy], references: [id])
-}
-
-model StockOut {
-  id        Int           @id @default(autoincrement())
-  date      DateTime      @default(now())
-  quantity  Int
+  unitPrice Decimal       @db.Decimal(18, 2)
+  total     Decimal       @db.Decimal(18, 2)
   note      String?
   item      InventoryItem @relation(fields: [itemId], references: [id])
   itemId    Int
 
   createdBy Int?
-  user      User?          @relation(fields: [createdBy], references: [id])
+  user      User? @relation(fields: [createdBy], references: [id])
+}
+
+model StockOut {
+  id       Int           @id @default(autoincrement())
+  date     DateTime      @default(now())
+  quantity Int
+  note     String?
+  item     InventoryItem @relation(fields: [itemId], references: [id])
+  itemId   Int
+
+  createdBy Int?
+  user      User? @relation(fields: [createdBy], references: [id])
 }
 
 model PasswordReset {
@@ -116,34 +117,38 @@ model PasswordReset {
 }
 
 model Voucher {
-  id           Int       @id @default(autoincrement())
-  type         String    // 'PNK' hoặc 'PXK'
-  voucherNo    String    @unique
-  date         DateTime  @default(now())
-  supplier     String?   // Người giao hàng (PNK)
-  receiver     String?   // Người nhận hàng (PXK)
-  reason       String?   // Lý do xuất / nhập
-  location     String?   // Địa điểm nhập / xuất kho
-  attachedDocs String?   // Số chứng từ gốc kèm theo
-  totalAmount  Decimal   @default(0) @db.Decimal(18,2)
+  id           Int      @id @default(autoincrement())
+  type         String // 'PNK' hoặc 'PXK'
+  voucherNo    String   @unique
+  date         DateTime @default(now())
+  supplier     String? // Người giao hàng (PNK)
+  receiver     String? // Người nhận hàng (PXK)
+  reason       String? // Lý do xuất / nhập
+  location     String? // Địa điểm nhập / xuất kho
+  attachedDocs String? // Số chứng từ gốc kèm theo
+  totalAmount  Decimal  @default(0) @db.Decimal(18, 2)
   businessName String?
   address      String?
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime @default(now())
 
-  items        Item[]
-  createdBy    Int?
-  user         User?     @relation(fields: [createdBy], references: [id])
+  items     Item[]
+  createdBy Int?
+  user      User?  @relation(fields: [createdBy], references: [id])
 }
 
 model Item {
-  id             Int       @id @default(autoincrement())
-  voucherId      Int
-  voucher        Voucher   @relation(fields: [voucherId], references: [id])
-  name           String
-  code           String?
-  unit           String?
-  qtyDocumented  Decimal?  @db.Decimal(18,2)
-  qtyActual      Decimal?  @db.Decimal(18,2)
-  unitPrice      Decimal?  @db.Decimal(18,2)
-  amount         Decimal?  @db.Decimal(18,2)
+  id            Int      @id @default(autoincrement())
+  voucherId     Int
+  voucher       Voucher  @relation(fields: [voucherId], references: [id])
+  name          String
+  code          String?
+  unit          String?
+  qtyDocumented Decimal? @db.Decimal(18, 2)
+  qtyActual     Decimal? @db.Decimal(18, 2)
+  unitPrice     Decimal? @db.Decimal(18, 2)
+  amount        Decimal? @db.Decimal(18, 2)
+
+  // Liên kết với hàng hóa trong kho
+  inventoryItem   InventoryItem? @relation(fields: [inventoryItemId], references: [id])
+  inventoryItemId Int?
 }
