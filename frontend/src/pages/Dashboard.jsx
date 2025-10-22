@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../api/axios";
+import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
 
 export default function Dashboard() {
   const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
@@ -19,31 +20,62 @@ export default function Dashboard() {
       .catch(console.error);
   }, []);
 
+  const formatVND = (n) =>
+    new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      maximumFractionDigits: 0,
+    }).format(n ?? 0);
+
+  const Card = ({ title, code, value, AccentIcon, accent }) => (
+    <div className="group rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-neutral-600">
+          <AccentIcon className={`h-5 w-5 ${accent}`} />
+          <span className={`font-semibold text-2xl text-neutral-900`}>
+            {title}
+          </span>
+          <span
+            className={`ml-3 rounded-full border px-2.5 py-[3px] text-sm ${accent} border-current/30`}
+          >
+            {code}
+          </span>
+        </div>
+      </div>
+      <div className="mt-4 text-2xl font-semibold tracking-tight text-neutral-900">
+        {formatVND(value)}
+      </div>
+    </div>
+  );
+
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">📊 Tổng quan kế toán</h1>
+    <div className="space-y-6">
+      <h1 className="text-3xl font-semibold tracking-tight">
+        📊 Tổng quan kế toán
+      </h1>
 
-      <div className="grid grid-cols-3 gap-6">
-        <div className="p-4 bg-green-100 border border-green-300 rounded-lg">
-          <h2 className="text-lg font-semibold text-green-700">Doanh thu (S1)</h2>
-          <p className="text-2xl font-bold mt-2">
-            {summary.income.toLocaleString("vi-VN")} đ
-          </p>
-        </div>
-
-        <div className="p-4 bg-red-100 border border-red-300 rounded-lg">
-          <h2 className="text-lg font-semibold text-red-700">Chi phí (S3)</h2>
-          <p className="text-2xl font-bold mt-2">
-            {summary.expense.toLocaleString("vi-VN")} đ
-          </p>
-        </div>
-
-        <div className="p-4 bg-blue-100 border border-blue-300 rounded-lg">
-          <h2 className="text-lg font-semibold text-blue-700">Tồn quỹ (S6)</h2>
-          <p className="text-2xl font-bold mt-2">
-            {summary.balance.toLocaleString("vi-VN")} đ
-          </p>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+        <Card
+          title="Doanh thu"
+          code="S1"
+          value={summary.income}
+          AccentIcon={TrendingUp}
+          accent="text-emerald-600"
+        />
+        <Card
+          title="Chi phí"
+          code="S3"
+          value={summary.expense}
+          AccentIcon={TrendingDown}
+          accent="text-rose-600"
+        />
+        <Card
+          title="Tồn quỹ"
+          code="S6"
+          value={summary.balance}
+          AccentIcon={Wallet}
+          accent="text-blue-600"
+        />
       </div>
     </div>
   );

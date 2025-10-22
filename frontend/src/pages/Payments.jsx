@@ -5,7 +5,7 @@ export default function Payments() {
   const [data, setData] = useState([]);
   const [form, setForm] = useState({
     date: "",
-    payee: "", // 👈 đổi tên cho khớp Prisma
+    payee: "",
     reason: "",
     amount: "",
     method: "cash",
@@ -29,13 +29,7 @@ export default function Payments() {
         ...form,
         amount: Number(form.amount),
       });
-      setForm({
-        date: "",
-        payee: "",
-        reason: "",
-        amount: "",
-        method: "cash",
-      });
+      setForm({ date: "", payee: "", reason: "", amount: "", method: "cash" });
       loadData();
     } catch (err) {
       console.error("❌ Lỗi khi lưu phiếu chi:", err);
@@ -46,106 +40,110 @@ export default function Payments() {
   };
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-4">💸 Phiếu chi (02-TT)</h2>
+    <div className="p-6 space-y-6">
+      <h2 className="text-2xl font-semibold tracking-tight">💸 Phiếu chi (02-TT)</h2>
 
-      {/* Form nhập */}
+      {/* Form */}
       <form
         onSubmit={handleSubmit}
-        className="flex flex-wrap gap-4 mb-6 bg-white p-4 rounded-lg shadow"
+        className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-5"
       >
-        <div className="flex flex-col">
-          <label className="text-sm font-semibold">Ngày</label>
-          <input
-            type="date"
-            value={form.date}
-            onChange={(e) => setForm({ ...form, date: e.target.value })}
-            className="border rounded p-2"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-neutral-700 mb-1">Ngày</label>
+            <input
+              type="date"
+              value={form.date}
+              onChange={(e) => setForm({ ...form, date: e.target.value })}
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-neutral-700 mb-1">Người nhận</label>
+            <input
+              type="text"
+              value={form.payee}
+              onChange={(e) => setForm({ ...form, payee: e.target.value })}
+              placeholder="Nguyễn Văn B"
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex flex-col lg:col-span-2">
+            <label className="text-sm font-medium text-neutral-700 mb-1">Lý do</label>
+            <input
+              type="text"
+              value={form.reason}
+              onChange={(e) => setForm({ ...form, reason: e.target.value })}
+              placeholder="Chi tiền nhập hàng"
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-neutral-700 mb-1">Số tiền</label>
+            <input
+              type="number"
+              value={form.amount}
+              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-neutral-700 mb-1">Phương thức</label>
+            <select
+              value={form.method}
+              onChange={(e) => setForm({ ...form, method: e.target.value })}
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="cash">Tiền mặt</option>
+              <option value="bank">Chuyển khoản</option>
+            </select>
+          </div>
         </div>
 
-        <div className="flex flex-col">
-          <label className="text-sm font-semibold">Người nhận</label>
-          <input
-            type="text"
-            value={form.payee}
-            onChange={(e) => setForm({ ...form, payee: e.target.value })}
-            className="border rounded p-2"
-            placeholder="Nguyễn Văn B"
-          />
-        </div>
-
-        <div className="flex flex-col">
-          <label className="text-sm font-semibold">Lý do</label>
-          <input
-            type="text"
-            value={form.reason}
-            onChange={(e) => setForm({ ...form, reason: e.target.value })}
-            className="border rounded p-2"
-            placeholder="Chi tiền nhập hàng"
-          />
-        </div>
-
-        <div className="flex flex-col">
-          <label className="text-sm font-semibold">Số tiền</label>
-          <input
-            type="number"
-            value={form.amount}
-            onChange={(e) => setForm({ ...form, amount: e.target.value })}
-            className="border rounded p-2 w-32"
-          />
-        </div>
-
-        <div className="flex flex-col">
-          <label className="text-sm font-semibold">Phương thức</label>
-          <select
-            value={form.method}
-            onChange={(e) => setForm({ ...form, method: e.target.value })}
-            className="border rounded p-2"
+        <div className="mt-4">
+          <button
+            type="submit"
+            disabled={loading}
+            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="cash">Tiền mặt</option>
-            <option value="bank">Chuyển khoản</option>
-          </select>
+            {loading ? "Đang lưu..." : "Lưu phiếu chi"}
+          </button>
         </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          {loading ? "Đang lưu..." : "Lưu phiếu chi"}
-        </button>
       </form>
 
-      {/* Bảng danh sách */}
-      <table className="w-full border border-gray-300 text-sm bg-white rounded shadow">
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="p-2 border">Ngày</th>
-            <th className="p-2 border">Người nhận</th>
-            <th className="p-2 border">Lý do</th>
-            <th className="p-2 border text-right">Số tiền</th>
-            <th className="p-2 border">PTTT</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((p) => (
-            <tr key={p.id} className="hover:bg-gray-50">
-              <td className="p-2 border">
-                {new Date(p.date).toLocaleDateString("vi-VN")}
-              </td>
-              <td className="p-2 border">{p.payee}</td>
-              <td className="p-2 border">{p.reason}</td>
-              <td className="p-2 border text-right">
-                {Number(p.amount).toLocaleString("vi-VN")} đ
-              </td>
-              <td className="p-2 border">
-                {p.method === "cash" ? "Tiền mặt" : "Chuyển khoản"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* Bảng */}
+      <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-neutral-50 sticky top-0 z-10">
+              <tr className="text-left text-neutral-700">
+                <th className="p-3">Ngày</th>
+                <th className="p-3">Người nhận</th>
+                <th className="p-3">Lý do</th>
+                <th className="p-3">Số tiền</th>   {/* bỏ text-right */}
+                <th className="p-3">PTTT</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((p) => (
+                <tr key={p.id} className="border-t hover:bg-neutral-50">
+                  <td className="p-3">{new Date(p.date).toLocaleDateString("vi-VN")}</td>
+                  <td className="p-3">{p.payee}</td>
+                  <td className="p-3">{p.reason}</td>
+                  <td className="p-3">{Number(p.amount).toLocaleString("vi-VN")} đ</td> {/* bỏ text-right */}
+                  <td className="p-3">{p.method === "cash" ? "Tiền mặt" : "Chuyển khoản"}</td>
+                </tr>
+              ))}
+              {/* ... */}
+            </tbody>
+
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

@@ -30,7 +30,7 @@ function moneyToWordsVn(n) {
   return `Tổng số tiền (viết bằng chữ): ${out} đồng`;
 }
 
-/* ---------- Bảng hàng hóa ---------- */
+/* ---------- Bảng hàng hóa (UI tinh gọn) ---------- */
 function LineItemsTable({ rows, setRows, editable = true, isEntry }) {
   const [inventory, setInventory] = useState([]);
 
@@ -74,87 +74,103 @@ function LineItemsTable({ rows, setRows, editable = true, isEntry }) {
   };
 
   return (
-    <div className="overflow-auto">
-      <table className="w-full border text-sm">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="border p-2">STT</th>
-            <th className="border p-2">Tên hàng (chọn từ kho)</th>
-            <th className="border p-2">Mã</th>
-            <th className="border p-2">ĐVT</th>
-            <th className="border p-2">Theo chứng từ</th>
-            <th className="border p-2">{isEntry ? "Thực nhập" : "Thực xuất"}</th>
-            <th className="border p-2">Đơn giá</th>
-            <th className="border p-2">Thành tiền</th>
-            {editable && <th className="border p-2">Xóa</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i}>
-              <td className="border text-center">{i + 1}</td>
-              <td className="border p-1">
-                <select
-                  value={r.itemId || ""}
-                  onChange={(e) => selectItem(i, e.target.value)}
-                  className="border w-full p-1"
-                >
-                  <option value="">-- Chọn hàng hóa --</option>
-                  {inventory.map((it) => (
-                    <option key={it.id} value={it.id}>
-                      {it.name}
-                    </option>
-                  ))}
-                </select>
-              </td>
-              <td className="border text-center">{r.code}</td>
-              <td className="border text-center">{r.unit}</td>
-              <td className="border text-right">
-                <input
-                  value={r.qtyDocumented}
-                  onChange={(e) => update(i, "qtyDocumented", e.target.value)}
-                  className="w-full border p-1"
-                />
-              </td>
-              <td className="border text-right">
-                <input
-                  value={r.qtyActual}
-                  onChange={(e) => update(i, "qtyActual", e.target.value)}
-                  className="w-full border p-1"
-                />
-              </td>
-              <td className="border text-right">
-                <input
-                  value={r.unitPrice}
-                  onChange={(e) => update(i, "unitPrice", e.target.value)}
-                  className="w-full border p-1"
-                />
-              </td>
-              <td className="border text-right">
-                {Number(r.amount || 0).toLocaleString()}
-              </td>
-              {editable && (
-                <td className="border text-center">
-                  <button
-                    onClick={() => removeRow(i)}
-                    className="text-red-600 hover:underline"
-                  >
-                    Xóa
-                  </button>
-                </td>
-              )}
+    <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden">
+      <div className="overflow-auto">
+        <table className="w-full text-sm [&_th]:text-left [&_td]:text-left">
+          <thead className="bg-neutral-50 sticky top-0 z-10">
+            <tr className="text-neutral-700">
+              <th className="p-3 w-16">STT</th>
+              <th className="p-3">Tên hàng (chọn từ kho)</th>
+              <th className="p-3 w-28">Mã</th>
+              <th className="p-3 w-24">ĐVT</th>
+              <th className="p-3 w-36">Theo chứng từ</th>
+              <th className="p-3 w-36">{isEntry ? "Thực nhập" : "Thực xuất"}</th>
+              <th className="p-3 w-36">Đơn giá</th>
+              <th className="p-3 w-40">Thành tiền</th>
+              {editable && <th className="p-3 w-24">Xóa</th>}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className="border-t hover:bg-neutral-50">
+                <td className="p-2">{i + 1}</td>
+                <td className="p-2">
+                  <select
+                    value={r.itemId || ""}
+                    onChange={(e) => selectItem(i, e.target.value)}
+                    className="w-full rounded border border-neutral-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">-- Chọn hàng hóa --</option>
+                    {inventory.map((it) => (
+                      <option key={it.id} value={it.id}>
+                        {it.name}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td className="p-2">{r.code}</td>
+                <td className="p-2">{r.unit}</td>
+
+                <td className="p-2">
+                  <input
+                    value={r.qtyDocumented}
+                    onChange={(e) => update(i, "qtyDocumented", e.target.value)}
+                    className="w-full rounded border border-neutral-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </td>
+
+                <td className="p-2">
+                  <input
+                    value={r.qtyActual}
+                    onChange={(e) => update(i, "qtyActual", e.target.value)}
+                    className="w-full rounded border border-neutral-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </td>
+
+                <td className="p-2">
+                  <input
+                    value={r.unitPrice}
+                    onChange={(e) => update(i, "unitPrice", e.target.value)}
+                    className="w-full rounded border border-neutral-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </td>
+
+                <td className="p-2">
+                  {Number(r.amount || 0).toLocaleString()}
+                </td>
+
+                {editable && (
+                  <td className="p-2">
+                    <button
+                      onClick={() => removeRow(i)}
+                      className="rounded-lg px-3 py-1.5 text-rose-700 hover:bg-rose-50"
+                    >
+                      Xóa
+                    </button>
+                  </td>
+                )}
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr>
+                <td className="p-6 text-center text-neutral-500" colSpan={editable ? 9 : 8}>
+                  Chưa có dòng hàng nào.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {editable && (
-        <button
-          onClick={addRow}
-          className="mt-2 px-3 py-1 border rounded hover:bg-gray-100"
-        >
-          + Thêm dòng
-        </button>
+        <div className="p-3 border-t bg-neutral-50">
+          <button
+            onClick={addRow}
+            className="inline-flex items-center gap-2 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm hover:bg-neutral-100"
+          >
+            + Thêm dòng
+          </button>
+        </div>
       )}
     </div>
   );
@@ -240,7 +256,7 @@ const PrintPreview = React.forwardRef(function PrintPreview(
         )}
       </div>
 
-      {/* Bảng theo đúng bố cục TT88 */}
+      {/* Bảng theo TT88 */}
       <table className="tt-table">
         <thead>
           <tr>
@@ -258,7 +274,6 @@ const PrintPreview = React.forwardRef(function PrintPreview(
             <th className="tt-th">Theo chứng từ</th>
             <th className="tt-th">{isPNK ? "Thực nhập" : "Thực xuất"}</th>
           </tr>
-          {/* Hàng A–D và 1–4 */}
           <tr className="tt-sub">
             <td className="tt-th">A</td>
             <td className="tt-th">B</td>
@@ -283,8 +298,6 @@ const PrintPreview = React.forwardRef(function PrintPreview(
               <td className="text-right">{Number(r.amount || 0).toLocaleString()}</td>
             </tr>
           ))}
-
-          {/* Cộng */}
           <tr>
             <td colSpan={7} className="text-right font-semibold">Cộng</td>
             <td className="text-right font-semibold">
@@ -294,7 +307,7 @@ const PrintPreview = React.forwardRef(function PrintPreview(
         </tbody>
       </table>
 
-      {/* Dòng dưới bảng */}
+      {/* Dưới bảng */}
       <div className="mt-3">
         <div>- Tổng số tiền (viết bằng chữ): {moneyToWordsVn(total).replace("Tổng số tiền (viết bằng chữ): ", "")}</div>
         <div>
@@ -387,56 +400,60 @@ export default function VoucherMockupTT88({ type: initialType = "PNK" }) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4">
-      <h2 className="text-xl font-bold mb-2">
-        {type === "PNK" ? "Phiếu Nhập Kho (03-VT)" : "Phiếu Xuất Kho (04-VT)"}
-      </h2>
+    <div className="max-w-6xl mx-auto p-4 space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold tracking-tight">
+          {type === "PNK" ? "Phiếu Nhập Kho (03-VT)" : "Phiếu Xuất Kho (04-VT)"}
+        </h2>
+      </div>
 
       {/* FORM THÔNG TIN */}
-      <div className="grid md:grid-cols-2 gap-4 mb-4">
-        <div>
-          <label>Hộ, cá nhân kinh doanh *</label>
-          <input
-            className={`border rounded w-full px-2 py-1 mb-1 ${required("businessName")}`}
-            value={info.businessName}
-            onBlur={() => markTouched("businessName")}
-            onChange={(e) => setInfo({ ...info, businessName: e.target.value })}
-          />
-          <label>Địa chỉ *</label>
-          <input
-            className={`border rounded w-full px-2 py-1 mb-1 ${required("address")}`}
-            value={info.address}
-            onBlur={() => markTouched("address")}
-            onChange={(e) => setInfo({ ...info, address: e.target.value })}
-          />
-          <label>Số phiếu</label>
-          <input
-            className="border rounded w-full px-2 py-1 mb-2"
-            value={info.voucherNo}
-            onChange={(e) => setInfo({ ...info, voucherNo: e.target.value })}
-          />
-        </div>
+      <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-5">
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Hộ, cá nhân kinh doanh *</label>
+            <input
+              className={`mt-1 w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 border ${required("businessName")}`}
+              value={info.businessName}
+              onBlur={() => markTouched("businessName")}
+              onChange={(e) => setInfo({ ...info, businessName: e.target.value })}
+            />
+            <label className="mt-3 block text-sm font-medium text-neutral-700">Địa chỉ *</label>
+            <input
+              className={`mt-1 w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 border ${required("address")}`}
+              value={info.address}
+              onBlur={() => markTouched("address")}
+              onChange={(e) => setInfo({ ...info, address: e.target.value })}
+            />
+            <label className="mt-3 block text-sm font-medium text-neutral-700">Số phiếu</label>
+            <input
+              className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={info.voucherNo}
+              onChange={(e) => setInfo({ ...info, voucherNo: e.target.value })}
+            />
+          </div>
 
-        <div>
-          <label>Người giao/nhận</label>
-          <input
-            className="border rounded w-full px-2 py-1 mb-2"
-            value={info.supplier || info.receiver}
-            onChange={(e) => setInfo({ ...info, supplier: e.target.value, receiver: e.target.value })}
-          />
-          <label>Địa điểm nhập/xuất *</label>
-          <input
-            className={`border rounded w-full px-2 py-1 mb-1 ${required("location")}`}
-            value={info.location}
-            onBlur={() => markTouched("location")}
-            onChange={(e) => setInfo({ ...info, location: e.target.value })}
-          />
-          <label>Lý do / ghi chú</label>
-          <input
-            className="border rounded w-full px-2 py-1 mb-2"
-            value={info.reason}
-            onChange={(e) => setInfo({ ...info, reason: e.target.value })}
-          />
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Người giao/nhận</label>
+            <input
+              className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={info.supplier || info.receiver}
+              onChange={(e) => setInfo({ ...info, supplier: e.target.value, receiver: e.target.value })}
+            />
+            <label className="mt-3 block text-sm font-medium text-neutral-700">Địa điểm nhập/xuất *</label>
+            <input
+              className={`mt-1 w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 border ${required("location")}`}
+              value={info.location}
+              onBlur={() => markTouched("location")}
+              onChange={(e) => setInfo({ ...info, location: e.target.value })}
+            />
+            <label className="mt-3 block text-sm font-medium text-neutral-700">Lý do / ghi chú</label>
+            <input
+              className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={info.reason}
+              onChange={(e) => setInfo({ ...info, reason: e.target.value })}
+            />
+          </div>
         </div>
       </div>
 
@@ -444,23 +461,23 @@ export default function VoucherMockupTT88({ type: initialType = "PNK" }) {
       <LineItemsTable rows={rows} setRows={setRows} editable={true} isEntry={type === "PNK"} />
 
       {/* NÚT HÀNH ĐỘNG */}
-      <div className="flex justify-between mt-4 items-center">
-        <div>
-          Tổng tiền: <b>{total.toLocaleString()} đ</b>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="text-sm text-neutral-700">
+          Tổng tiền: <b className="text-neutral-900">{total.toLocaleString()} đ</b>
         </div>
         <div className="flex gap-3">
           <button
             onClick={saveVoucher}
-            className={`flex items-center gap-1 px-4 py-2 rounded text-white ${
-              isValid ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"
-            }`}
+            className={`flex items-center gap-1 rounded-lg px-4 py-2 text-sm font-medium text-white ${
+              isValid ? "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500" : "bg-neutral-400 cursor-not-allowed"
+            } focus:outline-none focus:ring-2`}
             disabled={!isValid}
           >
             💾 Lưu phiếu
           </button>
           <button
             onClick={exportPDF}
-            className="flex items-center gap-1 px-4 py-2 rounded border hover:bg-gray-100"
+            className="flex items-center gap-1 rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             📄 Xuất PDF
           </button>
