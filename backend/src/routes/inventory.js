@@ -74,7 +74,15 @@ router.put("/items/:id", verifyToken, async (req, res) => {
     const { code, name, category, unit, unitPriceIn, unitPriceOut, note } = req.body;
     const item = await prisma.inventoryItem.update({
       where: { id: Number(id) },
-      data: { code, name, category, unit, unitPriceIn: Number(unitPriceIn) || 0, unitPriceOut: Number(unitPriceOut) || 0, note },
+      data: {
+        code,
+        name,
+        category,
+        unit,
+        unitPriceIn: Number(unitPriceIn) || 0,
+        unitPriceOut: Number(unitPriceOut) || 0,
+        note,
+      },
     });
     res.json(item);
   } catch (err) {
@@ -83,66 +91,14 @@ router.put("/items/:id", verifyToken, async (req, res) => {
   }
 });
 
-// =========================
-// NHẬP / XUẤT KHO
-// =========================
-router.post("/in", verifyToken, async (req, res) => {
-  try {
-    const { itemId, quantity, price, note } = req.body;
-    const item = await prisma.inventoryItem.update({
-      where: { id: Number(itemId) },
-      data: { quantity: { increment: Number(quantity) } },
-    });
-
-    await prisma.stockEntry.create({
-      data: {
-        itemId: Number(itemId),
-        quantity: Number(quantity),
-        unitPrice: Number(price) || item.unitPriceIn || 0,
-        total: Number(quantity) * (Number(price) || item.unitPriceIn || 0),
-        note,
-        createdBy: req.user.id,
-      },
-    });
-
-    res.json({ message: "✅ Nhập kho thành công", item });
-  } catch (err) {
-    console.error("❌ Lỗi nhập kho:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.post("/out", verifyToken, async (req, res) => {
-  try {
-    const { itemId, quantity, price, note } = req.body;
-    const item = await prisma.inventoryItem.findUnique({ where: { id: Number(itemId) } });
-    if (!item) return res.status(404).json({ error: "Không tìm thấy hàng hóa" });
-    if (item.quantity < quantity) return res.status(400).json({ error: "Không đủ hàng tồn" });
-
-    await prisma.inventoryItem.update({
-      where: { id: Number(itemId) },
-      data: { quantity: { decrement: Number(quantity) } },
-    });
-
-    await prisma.stockOut.create({
-      data: { itemId: Number(itemId), quantity: Number(quantity), note, createdBy: req.user.id },
-    });
-
-    res.json({ message: "✅ Xuất kho thành công" });
-  } catch (err) {
-    console.error("❌ Lỗi xuất kho:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // =======================
-// TẠO PHIẾU NHẬP/XUẤT KHO (Voucher TT88)
+// TẠO PHIẾU NHẬP/XUẤT KHO (Voucher TT88) + GHI NHẬT KÝ
 // =======================
 router.post("/voucher", verifyToken, async (req, res) => {
   try {
     const {
-      type,              // "PNK" hoặc "PXK"
-      voucherNo,         // nếu người dùng tự nhập, còn không hệ thống tự sinh
+      type, // "PNK" hoặc "PXK"
+      voucherNo,
       supplier,
       receiver,
       reason,
@@ -154,12 +110,9 @@ router.post("/voucher", verifyToken, async (req, res) => {
       items = [],
     } = req.body;
 
-    // ==== Tạo mã phiếu tự động (PNK hoặc PXK) ====
     const prefix = type === "PXK" ? "PXK" : "PNK";
     const today = new Date();
-    const dateCode = today.toISOString().split("T")[0].replace(/-/g, ""); // ví dụ 20251020
-
-    // Đếm số phiếu trong ngày để sinh số thứ tự
+    const dateCode = today.toISOString().split("T")[0].replace(/-/g, "");
     const count = await prisma.voucher.count({
       where: {
         type,
@@ -169,67 +122,80 @@ router.post("/voucher", verifyToken, async (req, res) => {
         },
       },
     });
-
     const newVoucherNo = `${prefix}${dateCode}-${String(count + 1).padStart(3, "0")}`;
 
-    // ==== Tạo phiếu và các dòng chi tiết ====
-    const voucher = await prisma.voucher.create({
-      data: {
-        type,
-        voucherNo: voucherNo || newVoucherNo,
-        supplier,
-        receiver,
-        reason,
-        location,
-        attachedDocs,
-        totalAmount: Number(totalAmount) || 0,
-        businessName,
-        address,
-        createdBy: req.user.id, // người lập phiếu
-        items: {
-          create: items.map((i) => ({
-            name: i.name,
-            code: i.code,
-            unit: i.unit,
-            qtyDocumented: Number(i.qtyDocumented || 0),
-            qtyActual: Number(i.qtyActual || 0),
-            unitPrice: Number(i.unitPrice || 0),
-            amount: Number(i.amount || 0),
-            inventoryItemId: i.itemId ? Number(i.itemId) : null, // 🔥 liên kết đúng hàng
-
-          })),
+    // ======= Gói toàn bộ trong transaction =======
+    const voucher = await prisma.$transaction(async (tx) => {
+      // 1. Tạo phiếu và các dòng hàng
+      const createdVoucher = await tx.voucher.create({
+        data: {
+          type,
+          voucherNo: voucherNo || newVoucherNo,
+          supplier,
+          receiver,
+          reason,
+          location,
+          attachedDocs,
+          totalAmount: Number(totalAmount) || 0,
+          businessName,
+          address,
+          createdBy: req.user.id,
+          items: {
+            create: items.map((i) => ({
+              name: i.name,
+              code: i.code,
+              unit: i.unit,
+              qtyDocumented: Number(i.qtyDocumented || 0),
+              qtyActual: Number(i.qtyActual || 0),
+              unitPrice: Number(i.unitPrice || 0),
+              amount: Number(i.amount || 0),
+              inventoryItemId: i.itemId ? Number(i.itemId) : null,
+            })),
+          },
         },
-      },
-      include: { items: true },
+        include: { items: true },
+      });
+
+      // 2. Cập nhật tồn kho + ghi nhật ký
+      for (const i of items) {
+        const qty = Number(i.qtyActual || 0);
+        if (!qty || !i.itemId) continue;
+
+        const item = await tx.inventoryItem.findUnique({
+          where: { id: Number(i.itemId) },
+        });
+        if (!item) continue;
+
+        if (type === "PXK" && item.quantity < qty)
+          throw new Error(`Không đủ tồn để xuất kho: ${item.name}`);
+
+        await tx.inventoryItem.update({
+          where: { id: item.id },
+          data: {
+            quantity: {
+              [type === "PNK" ? "increment" : "decrement"]: qty,
+            },
+          },
+        });
+
+        // === Ghi nhật ký phát sinh ===
+        await tx.inventoryTxn.create({
+          data: {
+            itemId: Number(i.itemId),
+            type: type === "PXK" ? "OUT" : "IN",
+            quantity: qty,
+            unitPrice: Number(i.unitPrice || 0),
+            refVoucherId: createdVoucher.id,
+            createdBy: req.user.id,
+          },
+        });
+      }
+
+      return createdVoucher;
     });
-    res.json(voucher);  
-
-    // ==== Cập nhật tồn kho (inventoryItem.quantity) ====
-    for (const i of items) {
-  const qty = Number(i.qtyActual || 0);
-  if (!qty || !i.itemId) continue;
-
-  const item = await prisma.inventoryItem.findUnique({
-    where: { id: Number(i.itemId) },
-  });
-  if (!item) continue;
-
-  if (type === "PXK" && item.quantity < qty)
-    throw new Error(`Không đủ tồn để xuất kho: ${item.name}`);
-
-  await prisma.inventoryItem.update({
-    where: { id: item.id },
-    data: {
-      quantity: {
-        [type === "PNK" ? "increment" : "decrement"]: qty,
-      },
-    },
-  });
-}
-
 
     res.json({
-      message: "✅ Lưu phiếu thành công và đã cập nhật tồn kho",
+      message: "✅ Lưu phiếu thành công, đã cập nhật tồn kho & nhật ký",
       voucher,
     });
   } catch (err) {
@@ -277,17 +243,22 @@ router.get("/voucher/:id", verifyToken, async (req, res) => {
 });
 
 // =======================
-// GHI NHẬN NGƯỜI XUẤT PDF
+// NHẬT KÝ KHO (xem toàn bộ)
 // =======================
-router.patch("/voucher/:id/export", verifyToken, async (req, res) => {
+router.get("/history", verifyToken, async (req, res) => {
   try {
-    await prisma.voucher.update({
-      where: { id: Number(req.params.id) },
-      data: { exportedBy: req.user.id, exportedAt: new Date() },
+    const history = await prisma.inventoryTxn.findMany({
+      where: { createdBy: req.user.id },
+      include: {
+        item: {
+          select: { id: true, code: true, name: true, unit: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
     });
-    res.json({ message: "✅ Đã ghi nhận người xuất phiếu" });
+    res.json(history);
   } catch (err) {
-    console.error("❌ Lỗi ghi nhận người xuất phiếu:", err);
+    console.error("❌ Lỗi tải nhật ký kho:", err);
     res.status(500).json({ error: err.message });
   }
 });

@@ -8,6 +8,7 @@ import ledgersRouter from "./routes/ledgers.js";
 import reportsRouter from "./routes/reports.js";
 import exportRouter from "./routes/export.js";
 import inventoryRoutes from "./routes/inventory.js";
+import userRoutes from "./routes/users.js";
 
 dotenv.config();
 const app = express();
@@ -29,6 +30,7 @@ app.use("/api/ledgers", ledgersRouter);
 app.use("/api/reports", reportsRouter);
 app.use("/api/export", exportRouter);
 app.use("/api/inventory", inventoryRoutes);
+app.use("/api/users", userRoutes);
 
 
 // Global error
