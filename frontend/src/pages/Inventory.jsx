@@ -314,6 +314,13 @@ export default function Inventory() {
               <i className="fa-solid fa-file-export"></i>
               Tạo phiếu xuất kho
             </button>
+             <button
+    onClick={() => navigate("/inventory/voucher")}
+    className="flex items-center gap-2 bg-gray-700 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-800 transition-all"
+  >
+    <i className="fa-solid fa-list"></i>
+    Danh sách phiếu
+  </button>
           </div>
         </div>
       </div>

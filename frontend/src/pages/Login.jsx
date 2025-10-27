@@ -15,9 +15,22 @@ function Login() {
         password,
       });
 
+      // Lưu token
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
-      navigate("/"); // về Dashboard
+
+      // Gọi API lấy thông tin user để kiểm tra thông tin doanh nghiệp
+      const profileRes = await axios.get("http://localhost:4000/api/users/profile", {
+        headers: { Authorization: `Bearer ${res.data.token}` },
+      });
+
+      const u = profileRes.data;
+      // Nếu chưa có thông tin doanh nghiệp → điều hướng sang /profile
+      if (!u.businessName || !u.address || !u.taxCode) {
+        navigate("/profile");
+      } else {
+        navigate("/"); // nếu có rồi → về Dashboard
+      }
     } catch (err) {
       alert("Đăng nhập thất bại: " + (err.response?.data?.error || err.message));
     }
@@ -54,7 +67,6 @@ function Login() {
           Đăng nhập
         </button>
 
-        {/* Liên kết phụ */}
         <div className="mt-4 text-center text-sm text-gray-600">
           <Link to="/forgot-password" className="text-blue-600 hover:underline">
             Quên mật khẩu?

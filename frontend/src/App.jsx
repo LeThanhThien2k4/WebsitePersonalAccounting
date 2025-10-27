@@ -19,7 +19,8 @@ import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import VoucherMockupTT88 from "./components/VoucherMockupTT88.jsx";
-
+import VoucherList from "./pages/VoucherList.jsx";
+import Profile from "./pages/Profile.jsx";
 // ===============================
 // Component bảo vệ route
 // ===============================
@@ -55,10 +56,13 @@ function App() {
             <Route path="inventory" element={<Inventory />} />{/* Quản lý kho */}
             <Route path="payrolls" element={<Payrolls />} />  {/* Bảng lương */}
             <Route path="reports" element={<Reports />} />    {/* Báo cáo */}
+            <Route path="profile" element={<Profile />} />
+
 
             {/* ==== Phiếu nhập / xuất kho theo TT88 ==== */}
-            <Route path="/inventory/voucher/new" element={<VoucherMockupTT88 type="PNK" />} />
-            <Route path="/inventory/voucher-out/new" element={<VoucherMockupTT88 type="PXK" />} />
+            <Route path="inventory/voucher" element={<VoucherList />} />
+            <Route path="inventory/voucher/new" element={<VoucherMockupTT88 type="PNK" />} />
+            <Route path="inventory/voucher-out/new" element={<VoucherMockupTT88 type="PXK" />} />
 
           </Route>
         </Route>

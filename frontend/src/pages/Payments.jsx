@@ -1,61 +1,94 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import api from "../api/axios";
+import html2canvas from "html2canvas-pro";
+import jsPDF from "jspdf";
+import PaymentPDF from "../components/PaymentPDF.jsx";
+import { createRoot } from "react-dom/client";
 
 export default function Payments() {
   const [data, setData] = useState([]);
+  const [profile, setProfile] = useState({});
   const [form, setForm] = useState({
     date: "",
-    payee: "", // 👈 đổi tên cho khớp Prisma
+    payee: "",
     reason: "",
     amount: "",
     method: "cash",
   });
   const [loading, setLoading] = useState(false);
+  const pdfRef = useRef();
 
-  const loadData = () => {
+  useEffect(() => {
+    api.get("/users/profile").then((res) => setProfile(res.data || {}));
     api.get("/journals/payments").then((res) => setData(res.data));
-  };
-
-  useEffect(loadData, []);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.date || !form.payee || !form.amount)
-      return alert("Vui lòng nhập đầy đủ thông tin!");
+      return alert("Vui lòng nhập đủ thông tin!");
 
     setLoading(true);
     try {
-      await api.post("/journals/payments", {
-        ...form,
-        amount: Number(form.amount),
-      });
-      setForm({
-        date: "",
-        payee: "",
-        reason: "",
-        amount: "",
-        method: "cash",
-      });
-      loadData();
+      await api.post("/journals/payments", { ...form, amount: Number(form.amount) });
+      setForm({ date: "", payee: "", reason: "", amount: "", method: "cash" });
+      const res = await api.get("/journals/payments");
+      setData(res.data);
     } catch (err) {
-      console.error("❌ Lỗi khi lưu phiếu chi:", err);
-      alert("Lỗi khi lưu phiếu chi");
+      alert("❌ Lỗi khi lưu phiếu chi");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleExport = async (row) => {
+    const container = document.createElement("div");
+    container.style.position = "absolute";
+    container.style.left = "-9999px";
+    document.body.appendChild(container);
+
+    const root = createRoot(container);
+    root.render(
+      <PaymentPDF
+        info={{
+          businessName: profile.businessName || "Hộ/CN kinh doanh",
+          address: profile.address || "—",
+          payee: row.payee,
+          reason: row.reason,
+          amount: row.amount,
+          date: new Date(row.date).toLocaleDateString("vi-VN"),
+          method: row.method,
+        }}
+      />
+    );
+
+    setTimeout(async () => {
+      try {
+        const canvas = await html2canvas(container, { scale: 2 });
+        const pdf = new jsPDF("p", "mm", "a4");
+        const w = pdf.internal.pageSize.getWidth();
+        const h = (canvas.height * w) / canvas.width;
+        pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, w, h);
+        pdf.save(`phieu-chi-${row.id}.pdf`);
+      } catch (err) {
+        console.error("❌ Xuất PDF lỗi:", err);
+      } finally {
+        root.unmount();
+        container.remove();
+      }
+    }, 300);
   };
 
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">💸 Phiếu chi (02-TT)</h2>
 
-      {/* Form nhập */}
       <form
         onSubmit={handleSubmit}
         className="flex flex-wrap gap-4 mb-6 bg-white p-4 rounded-lg shadow"
       >
         <div className="flex flex-col">
-          <label className="text-sm font-semibold">Ngày</label>
+          <label>Ngày</label>
           <input
             type="date"
             value={form.date}
@@ -63,31 +96,26 @@ export default function Payments() {
             className="border rounded p-2"
           />
         </div>
-
         <div className="flex flex-col">
-          <label className="text-sm font-semibold">Người nhận</label>
+          <label>Người nhận</label>
           <input
-            type="text"
             value={form.payee}
             onChange={(e) => setForm({ ...form, payee: e.target.value })}
             className="border rounded p-2"
             placeholder="Nguyễn Văn B"
           />
         </div>
-
         <div className="flex flex-col">
-          <label className="text-sm font-semibold">Lý do</label>
+          <label>Lý do</label>
           <input
-            type="text"
             value={form.reason}
             onChange={(e) => setForm({ ...form, reason: e.target.value })}
             className="border rounded p-2"
             placeholder="Chi tiền nhập hàng"
           />
         </div>
-
         <div className="flex flex-col">
-          <label className="text-sm font-semibold">Số tiền</label>
+          <label>Số tiền</label>
           <input
             type="number"
             value={form.amount}
@@ -95,9 +123,8 @@ export default function Payments() {
             className="border rounded p-2 w-32"
           />
         </div>
-
         <div className="flex flex-col">
-          <label className="text-sm font-semibold">Phương thức</label>
+          <label>Phương thức</label>
           <select
             value={form.method}
             onChange={(e) => setForm({ ...form, method: e.target.value })}
@@ -108,17 +135,18 @@ export default function Payments() {
           </select>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          {loading ? "Đang lưu..." : "Lưu phiếu chi"}
-        </button>
+        <div className="flex items-end gap-2">
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            {loading ? "Đang lưu..." : "Lưu phiếu chi"}
+          </button>
+        </div>
       </form>
 
-      {/* Bảng danh sách */}
-      <table className="w-full border border-gray-300 text-sm bg-white rounded shadow">
+      <table className="w-full border text-sm bg-white rounded shadow">
         <thead className="bg-gray-100">
           <tr>
             <th className="p-2 border">Ngày</th>
@@ -126,6 +154,7 @@ export default function Payments() {
             <th className="p-2 border">Lý do</th>
             <th className="p-2 border text-right">Số tiền</th>
             <th className="p-2 border">PTTT</th>
+            <th className="p-2 border text-center">Hành động</th>
           </tr>
         </thead>
         <tbody>
@@ -142,10 +171,22 @@ export default function Payments() {
               <td className="p-2 border">
                 {p.method === "cash" ? "Tiền mặt" : "Chuyển khoản"}
               </td>
+              <td className="p-2 border text-center">
+                <button
+                  onClick={() => handleExport(p)}
+                  className="bg-green-600 text-white px-3 py-1 rounded"
+                >
+                  Xuất PDF
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      <div style={{ position: "absolute", left: -9999 }}>
+        <PaymentPDF ref={pdfRef} info={form} />
+      </div>
     </div>
   );
 }

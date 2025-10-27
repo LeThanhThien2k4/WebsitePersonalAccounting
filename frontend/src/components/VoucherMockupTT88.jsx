@@ -360,9 +360,9 @@ export default function VoucherMockupTT88({ type: initialType = "PNK" }) {
 
     try {
       const payload = { ...info, type, items: rows, totalAmount: total };
-      const res = await api.post("/inventory/voucher", payload);
+      await api.post("/inventory/voucher", payload);
       toast.success("✅ Lưu phiếu thành công!");
-      if (res.data?.id) nav(`/inventory/voucher/${res.data.id}`);
+      setTimeout(() => nav("/inventory"), 1200);
     } catch (err) {
       console.error("❌ Lỗi lưu phiếu:", err.response?.data || err.message);
       toast.error("Lưu phiếu thất bại!");

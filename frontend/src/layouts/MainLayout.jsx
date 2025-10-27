@@ -1,6 +1,6 @@
 import React from "react";
 import { Outlet, NavLink } from "react-router-dom";
-import { Home, FileText, Wallet, Archive, Users, BookOpen } from "lucide-react";
+import { Home, FileText, Wallet, Archive, Users, BookOpen, IdCard } from "lucide-react";
 
 const links = [
   { to: "/", label: "Dashboard", icon: <Home size={18} /> },
@@ -9,6 +9,7 @@ const links = [
   { to: "/inventory", label: "Tồn kho", icon: <Archive size={18} /> },
   { to: "/payrolls", label: "Lương", icon: <Users size={18} /> },
   { to: "/reports", label: "Báo cáo", icon: <BookOpen size={18} /> },
+  { to: "/profile", label: "Hồ sơ doanh nghiệp", icon: <IdCard size={18} /> }, // ✅ thêm mục này
 ];
 
 const handleLogout = () => {
@@ -16,6 +17,7 @@ const handleLogout = () => {
   localStorage.removeItem("user");
   window.location.href = "/login";
 };
+
 export default function MainLayout() {
   return (
     <div className="flex min-h-screen">
@@ -36,20 +38,20 @@ export default function MainLayout() {
               {l.icon} {l.label}
             </NavLink>
           ))}
-              </nav>
-              <button
-  onClick={handleLogout}
-  className="w-full text-left text-red-500 hover:text-red-700 mt-6"
->
-  Đăng xuất
-</button>
+        </nav>
+
+        <button
+          onClick={handleLogout}
+          className="w-full text-left text-red-500 hover:text-red-700 mt-6"
+        >
+          Đăng xuất
+        </button>
       </aside>
 
       {/* Main content */}
       <main className="flex-1 bg-gray-50 p-6 overflow-y-auto">
         <Outlet />
-          </main>
-          
+      </main>
     </div>
   );
 }
