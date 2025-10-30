@@ -4,6 +4,7 @@ import html2canvas from "html2canvas-pro";
 import jsPDF from "jspdf";
 import PaymentPDF from "../components/PaymentPDF.jsx";
 import { createRoot } from "react-dom/client";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function Payments() {
   const [data, setData] = useState([]);
@@ -26,16 +27,19 @@ export default function Payments() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.date || !form.payee || !form.amount)
-      return alert("Vui lòng nhập đủ thông tin!");
-
+      return toast.error("Vui lòng nhập đủ thông tin!");
     setLoading(true);
     try {
-      await api.post("/journals/payments", { ...form, amount: Number(form.amount) });
+      await api.post("/journals/payments", {
+        ...form,
+        amount: Number(form.amount),
+      });
       setForm({ date: "", payee: "", reason: "", amount: "", method: "cash" });
       const res = await api.get("/journals/payments");
       setData(res.data);
-    } catch (err) {
-      alert("❌ Lỗi khi lưu phiếu chi");
+      toast.success("✅ Đã lưu phiếu chi");
+    } catch {
+      toast.error("❌ Lỗi khi lưu phiếu chi");
     } finally {
       setLoading(false);
     }
@@ -70,8 +74,9 @@ export default function Payments() {
         const h = (canvas.height * w) / canvas.width;
         pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, w, h);
         pdf.save(`phieu-chi-${row.id}.pdf`);
-      } catch (err) {
-        console.error("❌ Xuất PDF lỗi:", err);
+        toast.success("📄 Xuất PDF thành công");
+      } catch {
+        toast.error("❌ Xuất PDF thất bại");
       } finally {
         root.unmount();
         container.remove();
@@ -79,8 +84,20 @@ export default function Payments() {
     }, 300);
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm("Bạn có chắc muốn xóa phiếu chi này?")) return;
+    try {
+      await api.delete(`/journals/payments/${id}`);
+      setData((prev) => prev.filter((p) => p.id !== id));
+      toast.success("🗑️ Đã xóa phiếu chi");
+    } catch {
+      toast.error("❌ Không thể xóa phiếu chi");
+    }
+  };
+
   return (
     <div>
+      <Toaster position="top-right" />
       <h2 className="text-2xl font-bold mb-4">💸 Phiếu chi (02-TT)</h2>
 
       <form
@@ -134,7 +151,6 @@ export default function Payments() {
             <option value="bank">Chuyển khoản</option>
           </select>
         </div>
-
         <div className="flex items-end gap-2">
           <button
             type="submit"
@@ -171,12 +187,18 @@ export default function Payments() {
               <td className="p-2 border">
                 {p.method === "cash" ? "Tiền mặt" : "Chuyển khoản"}
               </td>
-              <td className="p-2 border text-center">
+              <td className="p-2 border text-center space-x-2">
                 <button
                   onClick={() => handleExport(p)}
                   className="bg-green-600 text-white px-3 py-1 rounded"
                 >
                   Xuất PDF
+                </button>
+                <button
+                  onClick={() => handleDelete(p.id)}
+                  className="bg-red-600 text-white px-3 py-1 rounded"
+                >
+                  Xóa
                 </button>
               </td>
             </tr>

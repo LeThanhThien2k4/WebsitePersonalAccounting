@@ -4,6 +4,7 @@ import html2canvas from "html2canvas-pro";
 import jsPDF from "jspdf";
 import ReceiptPDF from "../components/ReceiptPDF.jsx";
 import { createRoot } from "react-dom/client";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function Receipts() {
   const [data, setData] = useState([]);
@@ -18,18 +19,15 @@ export default function Receipts() {
   const [loading, setLoading] = useState(false);
   const pdfRef = useRef();
 
-  // Lấy hồ sơ doanh nghiệp và danh sách phiếu
   useEffect(() => {
     api.get("/users/profile").then((res) => setProfile(res.data || {}));
     api.get("/journals/receipts").then((res) => setData(res.data));
   }, []);
 
-  // Thêm phiếu thu
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.date || !form.payer || !form.amount)
-      return alert("Vui lòng nhập đầy đủ dữ liệu");
-
+      return toast.error("Vui lòng nhập đầy đủ dữ liệu");
     setLoading(true);
     try {
       await api.post("/journals/receipts", {
@@ -39,14 +37,14 @@ export default function Receipts() {
       setForm({ date: "", payer: "", reason: "", amount: "", method: "cash" });
       const res = await api.get("/journals/receipts");
       setData(res.data);
-    } catch (err) {
-      alert("❌ Lỗi khi lưu phiếu thu");
+      toast.success("✅ Đã lưu phiếu thu");
+    } catch {
+      toast.error("❌ Lỗi khi lưu phiếu thu");
     } finally {
       setLoading(false);
     }
   };
 
-  // Xuất PDF từng phiếu
   const handleExport = async (row) => {
     const container = document.createElement("div");
     container.style.position = "absolute";
@@ -76,8 +74,9 @@ export default function Receipts() {
         const h = (canvas.height * w) / canvas.width;
         pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, w, h);
         pdf.save(`phieu-thu-${row.id}.pdf`);
-      } catch (err) {
-        console.error("❌ Xuất PDF lỗi:", err);
+        toast.success("📄 Xuất PDF thành công");
+      } catch {
+        toast.error("❌ Xuất PDF thất bại");
       } finally {
         root.unmount();
         container.remove();
@@ -85,8 +84,20 @@ export default function Receipts() {
     }, 300);
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm("Bạn có chắc muốn xóa phiếu thu này?")) return;
+    try {
+      await api.delete(`/journals/receipts/${id}`);
+      setData((prev) => prev.filter((r) => r.id !== id));
+      toast.success("🗑️ Đã xóa phiếu thu");
+    } catch {
+      toast.error("❌ Không thể xóa phiếu thu");
+    }
+  };
+
   return (
     <div>
+      <Toaster position="top-right" />
       <h2 className="text-2xl font-bold mb-4">📥 Phiếu thu (01-TT)</h2>
 
       <form
@@ -140,7 +151,6 @@ export default function Receipts() {
             <option value="bank">Chuyển khoản</option>
           </select>
         </div>
-
         <div className="flex items-end gap-2">
           <button
             type="submit"
@@ -152,7 +162,6 @@ export default function Receipts() {
         </div>
       </form>
 
-      {/* Bảng danh sách */}
       <table className="w-full border text-sm bg-white rounded shadow">
         <thead className="bg-gray-100">
           <tr>
@@ -178,12 +187,18 @@ export default function Receipts() {
               <td className="p-2 border">
                 {r.method === "cash" ? "Tiền mặt" : "Chuyển khoản"}
               </td>
-              <td className="p-2 border text-center">
+              <td className="p-2 border text-center space-x-2">
                 <button
                   onClick={() => handleExport(r)}
                   className="bg-green-600 text-white px-3 py-1 rounded"
                 >
                   Xuất PDF
+                </button>
+                <button
+                  onClick={() => handleDelete(r.id)}
+                  className="bg-red-600 text-white px-3 py-1 rounded"
+                >
+                  Xóa
                 </button>
               </td>
             </tr>

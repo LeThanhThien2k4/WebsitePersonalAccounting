@@ -7,7 +7,8 @@ const links = [
   { to: "/receipts", label: "Phiếu thu", icon: <Wallet size={18} /> },
   { to: "/payments", label: "Phiếu chi", icon: <FileText size={18} /> },
   { to: "/inventory", label: "Tồn kho", icon: <Archive size={18} /> },
-  { to: "/payrolls", label: "Lương", icon: <Users size={18} /> },
+  { to: "/payroll", label: "Lương", icon: <Users size={18} /> },
+  { to: "/employees", label: "Nhân viên", icon: <IdCard size={18} /> },
   { to: "/reports", label: "Báo cáo", icon: <BookOpen size={18} /> },
   { to: "/profile", label: "Hồ sơ doanh nghiệp", icon: <IdCard size={18} /> }, // ✅ thêm mục này
 ];
