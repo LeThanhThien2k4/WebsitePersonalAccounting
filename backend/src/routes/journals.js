@@ -1,3 +1,4 @@
+// backend/src/routes/journals.js
 import express from "express";
 import { PrismaClient } from "@prisma/client";
 import verifyToken from "../middleware/auth.js";
@@ -5,16 +6,18 @@ import verifyToken from "../middleware/auth.js";
 const prisma = new PrismaClient();
 const router = express.Router();
 
+router.use(verifyToken);
+
 // =======================
 // Phiếu thu (01-TT)
 // =======================
-router.post("/receipts", verifyToken, async (req, res) => {
+router.post("/receipts", async (req, res) => {
   try {
     const data = await prisma.receipt.create({
       data: {
         date: new Date(req.body.date),
         payer: req.body.payer,
-        reason: req.body.reason,
+        reason: req.body.reason ?? null,
         amount: Number(req.body.amount),
         method: req.body.method,
         createdBy: req.user.id,
@@ -27,25 +30,34 @@ router.post("/receipts", verifyToken, async (req, res) => {
   }
 });
 
-router.get("/receipts", verifyToken, async (_req, res) => {
+router.get("/receipts", async (req, res) => {
   const list = await prisma.receipt.findMany({
-    where: { createdBy: _req.user.id },
+    where: { createdBy: req.user.id },
     orderBy: { date: "desc" },
     include: { user: true },
   });
   res.json(list);
 });
+// Xóa phiếu thu
+router.delete("/receipts/:id", async (req, res) => {
+  try {
+    await prisma.receipt.delete({ where: { id: Number(req.params.id) } });
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Không thể xóa phiếu thu" });
+  }
+});
 
 // =======================
 // Phiếu chi (02-TT)
 // =======================
-router.post("/payments", verifyToken, async (req, res) => {
+router.post("/payments", async (req, res) => {
   try {
     const data = await prisma.payment.create({
       data: {
         date: new Date(req.body.date),
         payee: req.body.payee,
-        reason: req.body.reason,
+        reason: req.body.reason ?? null,
         amount: Number(req.body.amount),
         method: req.body.method,
         createdBy: req.user.id,
@@ -58,86 +70,136 @@ router.post("/payments", verifyToken, async (req, res) => {
   }
 });
 
-router.get("/payments", verifyToken, async (_req, res) => {
+router.get("/payments", async (req, res) => {
   const list = await prisma.payment.findMany({
-    where: { createdBy: _req.user.id },
+    where: { createdBy: req.user.id },
     orderBy: { date: "desc" },
     include: { user: true },
   });
   res.json(list);
 });
-
-// =======================
-// Nhập kho (03-VT)
-// =======================
-router.post("/inventory/in", verifyToken, async (req, res) => {
+// Xóa phiếu chi
+router.delete("/payments/:id", async (req, res) => {
   try {
-    const data = await prisma.inventoryIn.create({
-      data: {
-        date: new Date(req.body.date),
-        item: req.body.item,
-        qty: Number(req.body.qty),
-        price: Number(req.body.price),
-        total: Number(req.body.total),
-        createdBy: req.user.id, // ✅ thêm dòng này
-      },
+    await prisma.payment.delete({ where: { id: Number(req.params.id) } });
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Không thể xóa phiếu chi" });
+  }
+});
+// =======================
+// Nhập kho / Xuất kho (03–VT / 04–VT)
+// Dùng InventoryItem + InventoryTxn
+// Body đề xuất: { itemId, qty, unitPrice }
+// =======================
+
+// Nhập kho
+router.post("/inventory/in", async (req, res) => {
+  try {
+    const { itemId, itemCode, qty, unitPrice } = req.body;
+    if (!itemId && !itemCode) return res.status(400).json({ error: "Thiếu itemId hoặc itemCode" });
+
+    const item =
+      itemId
+        ? await prisma.inventoryItem.findUnique({ where: { id: Number(itemId) } })
+        : await prisma.inventoryItem.findUnique({ where: { code: String(itemCode) } });
+
+    if (!item || item.createdBy !== req.user.id)
+      return res.status(404).json({ error: "Hàng hóa không tồn tại" });
+
+    const nQty = Number(qty || 0);
+    const nPrice = unitPrice != null ? Number(unitPrice) : null;
+
+    const tx = await prisma.$transaction(async (txp) => {
+      const updated = await txp.inventoryItem.update({
+        where: { id: item.id },
+        data: {
+          quantity: { increment: nQty },
+          unitPriceIn: nPrice ?? item.unitPriceIn,
+        },
+      });
+
+      const txn = await txp.inventoryTxn.create({
+        data: {
+          itemId: item.id,
+          type: "IN",
+          quantity: nQty,
+          unitPrice: nPrice,
+          createdBy: req.user.id,
+        },
+      });
+
+      return { updated, txn };
     });
-    res.json(data);
+
+    res.json(tx);
   } catch (err) {
     console.error("❌ Lỗi nhập kho:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-
-// =======================
-// Xuất kho (04-VT)
-// =======================
-router.post("/inventory/out", verifyToken, async (req, res) => {
+// Xuất kho
+router.post("/inventory/out", async (req, res) => {
   try {
-    const data = await prisma.inventoryOut.create({
-      data: {
-        date: new Date(req.body.date),
-        item: req.body.item,
-        qty: Number(req.body.qty),
-        price: Number(req.body.price),
-        total: Number(req.body.total),
-        createdBy: req.user.id, // ✅ thêm dòng này
-      },
+    const { itemId, itemCode, qty, unitPrice } = req.body;
+    if (!itemId && !itemCode) return res.status(400).json({ error: "Thiếu itemId hoặc itemCode" });
+
+    const item =
+      itemId
+        ? await prisma.inventoryItem.findUnique({ where: { id: Number(itemId) } })
+        : await prisma.inventoryItem.findUnique({ where: { code: String(itemCode) } });
+
+    if (!item || item.createdBy !== req.user.id)
+      return res.status(404).json({ error: "Hàng hóa không tồn tại" });
+
+    const nQty = Number(qty || 0);
+    if (item.quantity < nQty) return res.status(400).json({ error: "Tồn kho không đủ" });
+
+    const nPrice = unitPrice != null ? Number(unitPrice) : item.unitPriceOut ?? null;
+
+    const tx = await prisma.$transaction(async (txp) => {
+      const updated = await txp.inventoryItem.update({
+        where: { id: item.id },
+        data: {
+          quantity: { decrement: nQty },
+          // không bắt buộc cập nhật đơn giá xuất
+        },
+      });
+
+      const txn = await txp.inventoryTxn.create({
+        data: {
+          itemId: item.id,
+          type: "OUT",
+          quantity: nQty,
+          unitPrice: nPrice,
+          createdBy: req.user.id,
+        },
+      });
+
+      return { updated, txn };
     });
-    res.json(data);
+
+    res.json(tx);
   } catch (err) {
     console.error("❌ Lỗi xuất kho:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-
 // =======================
-// Bảng lương (05-LĐTL)
+// Lịch sử giao dịch kho (tùy chọn)
 // =======================
-router.post("/payrolls", verifyToken, async (req, res) => {
-  try {
-    const data = await prisma.payroll.create({
-      data: {
-        period: req.body.period,
-        employees: req.body.employees,
-        total: Number(req.body.total),
-        createdBy: req.user.id,
-      },
-    });
-    res.json(data);
-  } catch (err) {
-    console.error("❌ Lỗi tạo bảng lương:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
+router.get("/inventory/transactions", async (req, res) => {
+  const { itemId } = req.query;
+  const where = itemId
+    ? { itemId: Number(itemId) }
+    : { InventoryItem: { createdBy: req.user.id } };
 
-router.get("/payrolls", verifyToken, async (_req, res) => {
-  const list = await prisma.payroll.findMany({
-    where: { createdBy: _req.user.id },
-    orderBy: { period: "desc" },
-    include: { user: true },
+  const list = await prisma.inventoryTxn.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    include: { InventoryItem: true },
   });
   res.json(list);
 });

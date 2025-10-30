@@ -9,6 +9,9 @@ import reportsRouter from "./routes/reports.js";
 import exportRouter from "./routes/export.js";
 import inventoryRoutes from "./routes/inventory.js";
 import userRoutes from "./routes/users.js";
+import payrollRoutes from "./routes/payrolls.js";
+import employeeRoutes from "./routes/employees.js";
+
 
 dotenv.config();
 const app = express();
@@ -31,6 +34,8 @@ app.use("/api/reports", reportsRouter);
 app.use("/api/export", exportRouter);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/payrolls", payrollRoutes);
+app.use("/api/employees", employeeRoutes);
 
 
 // Global error
