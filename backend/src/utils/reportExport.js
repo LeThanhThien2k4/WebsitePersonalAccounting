@@ -1,60 +1,132 @@
+// backend/src/utils/reportExport.js
 import PdfPrinter from "pdfmake";
-import ExcelJS from "exceljs";
-import fs from "fs";
-import { exportLedgerPDF, exportLedgerExcel } from "../utils/reportExport.js";
 
-
+/**
+ * Xuất PDF sổ kế toán (S6/S7) theo TT88.
+ * Có chữ ký Người lập sổ – Chủ hộ – Kế toán trưởng.
+ * Tự động fix lỗi Content-Disposition với tên file không hợp lệ.
+ */
 export const exportLedgerPDF = async (ledgerData, title, res) => {
-  const fonts = {
-    Roboto: {
-      normal: "node_modules/pdfmake/build/vfs_fonts.js"
-    }
-  };
-  const printer = new PdfPrinter(fonts);
+  try {
+    const fonts = {
+      Helvetica: {
+        normal: "Helvetica",
+        bold: "Helvetica-Bold",
+        italics: "Helvetica-Oblique",
+        bolditalics: "Helvetica-BoldOblique",
+      },
+    };
+    const printer = new PdfPrinter(fonts);
 
-  const body = [
-    [{ text: "Ngày", bold: true }, { text: "Nội dung" }, { text: "Số tiền" }]
-  ];
-  ledgerData.forEach(r => {
-    body.push([r.date, r.reason, r.amount]);
-  });
+    const body = [
+      [
+        { text: "Ngày", style: "tableHeader" },
+        { text: "Loại", style: "tableHeader" },
+        { text: "Nội dung", style: "tableHeader" },
+        { text: "Số tiền (VNĐ)", style: "tableHeader", alignment: "right" },
+        { text: "Số dư (VNĐ)", style: "tableHeader", alignment: "right" },
+      ],
+    ];
 
-  const docDefinition = {
-    content: [
-      { text: title, style: "header" },
-      { table: { body } }
-    ],
-    styles: { header: { fontSize: 16, bold: true, margin: [0, 0, 0, 10] } }
-  };
+    ledgerData.forEach((r) => {
+      body.push([
+        { text: new Date(r.date).toLocaleDateString("vi-VN"), style: "tableCell" },
+        { text: r.type, alignment: "center", style: "tableCell" },
+        { text: r.reason || "", style: "tableCell" },
+        {
+          text: (r.signedAmount > 0 ? "+" : "") + Number(r.signedAmount || 0).toLocaleString("vi-VN"),
+          alignment: "right",
+          color: (r.signedAmount || 0) >= 0 ? "green" : "red",
+          style: "tableCell",
+        },
+        {
+          text: Number(r.balance || 0).toLocaleString("vi-VN"),
+          alignment: "right",
+          style: "tableCell",
+        },
+      ]);
+    });
 
-  const pdfDoc = printer.createPdfKitDocument(docDefinition);
-  res.setHeader("Content-Type", "application/pdf");
-  pdfDoc.pipe(res);
-  pdfDoc.end();
+    const docDefinition = {
+      pageSize: "A4",
+      pageMargins: [40, 60, 40, 80],
+      content: [
+        { text: "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM", alignment: "center", bold: true },
+        { text: "Độc lập - Tự do - Hạnh phúc", alignment: "center", margin: [0, 0, 0, 10] },
+        { text: title, style: "header", alignment: "center", margin: [0, 20, 0, 10] },
+        {
+          text: "Mẫu số: S6-HKD / S7-HKD - Theo Thông tư 88/2021/TT-BTC",
+          alignment: "right",
+          italics: true,
+          fontSize: 9,
+          margin: [0, 0, 0, 10],
+        },
+        {
+          table: {
+            headerRows: 1,
+            widths: ["auto", "auto", "*", "auto", "auto"],
+            body,
+          },
+          layout: {
+            fillColor: (i) => (i === 0 ? "#f3f3f3" : null),
+            hLineColor: () => "#ccc",
+            vLineColor: () => "#ccc",
+          },
+        },
+        {
+          text: `\nNgày in: ${new Date().toLocaleDateString("vi-VN")}`,
+          alignment: "right",
+          fontSize: 10,
+          margin: [0, 20, 0, 10],
+        },
+        {
+          columns: [
+            {
+              width: "33%",
+              text: [
+                { text: "NGƯỜI LẬP SỔ\n", bold: true },
+                { text: "(Ký, họ tên)\n\n\n\n\n", italics: true },
+              ],
+              alignment: "center",
+            },
+            {
+              width: "33%",
+              text: [
+                { text: "CHỦ HỘ\n", bold: true },
+                { text: "(Ký, họ tên)\n\n\n\n\n", italics: true },
+              ],
+              alignment: "center",
+            },
+            {
+              width: "33%",
+              text: [
+                { text: "KẾ TOÁN TRƯỞNG\n", bold: true },
+                { text: "(Ký, họ tên)\n\n\n\n\n", italics: true },
+              ],
+              alignment: "center",
+            },
+          ],
+          margin: [0, 30, 0, 0],
+        },
+      ],
+      styles: {
+        header: { fontSize: 14, bold: true },
+        tableHeader: { bold: true, fontSize: 11, fillColor: "#e0e0e0", alignment: "center" },
+        tableCell: { fontSize: 10, margin: [2, 4, 2, 4] },
+      },
+      defaultStyle: { font: "Helvetica" },
+    };
+
+    // 🔧 Fix lỗi "Invalid character in header"
+    const safeTitle = title.replace(/[^\w\d_\-\.]/g, "_");
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${safeTitle}.pdf"`);
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (err) {
+    console.error("❌ Lỗi tạo PDF:", err.message);
+    res.status(500).json({ error: "Không thể xuất PDF" });
+  }
 };
-
-export const exportLedgerExcel = async (ledgerData, title, res) => {
-  const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet(title);
-  ws.addRow(["Ngày", "Nội dung", "Số tiền"]);
-  ledgerData.forEach(r => ws.addRow([r.date, r.reason, r.amount]));
-  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-  res.setHeader("Content-Disposition", `attachment; filename=${title}.xlsx`);
-  await wb.xlsx.write(res);
-  res.end();
-};
-
-
-router.get("/S6/export/:type", async (req, res) => {
-  const receipts = await prisma.receipts.findMany({ where: { method: "cash" } });
-  const payments = await prisma.payments.findMany({ where: { method: "cash" } });
-  const ledger = [
-    ...receipts.map(r => ({ ...r, type: "THU" })),
-    ...payments.map(p => ({ ...p, amount: -p.amount, type: "CHI" }))
-  ].sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  const type = req.params.type;
-  if (type === "pdf") return exportLedgerPDF(ledger, "Sổ quỹ tiền mặt (S6-HKD)", res);
-  if (type === "excel") return exportLedgerExcel(ledger, "Sổ quỹ tiền mặt (S6-HKD)", res);
-  res.status(400).send("Invalid export type");
-});

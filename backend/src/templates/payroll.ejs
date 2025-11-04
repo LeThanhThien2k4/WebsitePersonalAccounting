@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body { font-family: "Times New Roman", serif; font-size: 12px; color: #000; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border: 1px solid #000; padding: 4px; text-align: center; }
+    th { background: #f2f2f2; }
+  </style>
+</head>
+<body>
+  <div style="text-align:right">
+    <b>Mẫu số: 05-LĐTL</b><br/>
+    <i>(Ban hành kèm theo Thông tư số 88/2021/TT-BTC)</i>
+  </div>
+
+  <div>
+    <b>HỘ, CÁ NHÂN KINH DOANH:</b> <%= business %><br/>
+    Địa chỉ: <%= address %>
+  </div>
+
+  <h3 style="text-align:center; margin:10px 0;">
+    BẢNG THANH TOÁN TIỀN LƯƠNG VÀ CÁC KHOẢN THU NHẬP CỦA NGƯỜI LAO ĐỘNG
+  </h3>
+  <p style="text-align:center">Tháng <%= month %> năm <%= year %></p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>STT</th><th>Họ và tên</th><th>Chức vụ</th><th>Lương SP</th><th>Ngày công</th>
+        <th>Giờ OT</th><th>Phụ cấp</th><th>Thưởng</th><th>Khác</th><th>Khấu trừ</th>
+        <th>Tạm ứng</th><th>BHXH</th><th>BHYT</th><th>BHTN</th><th>CĐ phí</th>
+        <th>Tổng TN</th><th>Thực lĩnh</th><th>Ký nhận</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% rows.forEach(r => { %>
+      <tr>
+        <td><%= r.stt %></td><td><%= r.name %></td><td><%= r.position %></td>
+        <td><%= r.salaryBase.toLocaleString('vi-VN') %></td>
+        <td><%= r.daysWorked %></td><td><%= r.otHours %></td>
+        <td><%= r.allowances.toLocaleString('vi-VN') %></td>
+        <td><%= r.bonus.toLocaleString('vi-VN') %></td>
+        <td><%= r.otherIncome.toLocaleString('vi-VN') %></td>
+        <td><%= r.deductUnpaid.toLocaleString('vi-VN') %></td>
+        <td><%= r.advance.toLocaleString('vi-VN') %></td>
+        <td><%= r.bhxhEmp.toLocaleString('vi-VN') %></td>
+        <td><%= r.bhytEmp.toLocaleString('vi-VN') %></td>
+        <td><%= r.bhtnEmp.toLocaleString('vi-VN') %></td>
+        <td><%= r.unionEmp.toLocaleString('vi-VN') %></td>
+        <td><%= r.gross.toLocaleString('vi-VN') %></td>
+        <td><%= r.netPay.toLocaleString('vi-VN') %></td>
+        <td></td>
+      </tr>
+      <% }) %>
+      <tr style="font-weight:bold;">
+        <td colspan="15" style="text-align:right;">Cộng</td>
+        <td><%= total.gross.toLocaleString('vi-VN') %></td>
+        <td><%= total.netPay.toLocaleString('vi-VN') %></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p style="margin-top:10px">Tổng số tiền (viết bằng chữ): <%= amountText %></p>
+
+  <div style="margin-top:40px; display:flex; justify-content:space-between; text-align:center;">
+    <div><b>Người lập biểu</b><br/>(Ký, họ tên)</div>
+    <div><b>Đại diện hộ/cá nhân KD</b><br/>(Ký, họ tên, đóng dấu)</div>
+  </div>
+</body>
+</html>

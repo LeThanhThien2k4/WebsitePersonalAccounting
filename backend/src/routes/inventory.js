@@ -196,6 +196,7 @@ router.post("/voucher", verifyToken, async (req, res) => {
 
     res.json({
       message: "✅ Lưu phiếu thành công, đã cập nhật tồn kho & nhật ký",
+      id: voucher.id,       // ✅ thêm dòng này
       voucher,
     });
   } catch (err) {
