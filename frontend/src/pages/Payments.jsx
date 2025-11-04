@@ -1,9 +1,5 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import api from "../api/axios";
-import html2canvas from "html2canvas-pro";
-import jsPDF from "jspdf";
-import PaymentPDF from "../components/PaymentPDF.jsx";
-import { createRoot } from "react-dom/client";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function Payments() {
@@ -17,11 +13,21 @@ export default function Payments() {
     method: "cash",
   });
   const [loading, setLoading] = useState(false);
-  const pdfRef = useRef();
 
   useEffect(() => {
-    api.get("/users/profile").then((res) => setProfile(res.data || {}));
-    api.get("/journals/payments").then((res) => setData(res.data));
+    const loadData = async () => {
+      try {
+        const [u, p] = await Promise.all([
+          api.get("/users/profile"),
+          api.get("/journals/payments"),
+        ]);
+        setProfile(u.data || {});
+        setData(p.data || []);
+      } catch {
+        toast.error("Không tải được dữ liệu");
+      }
+    };
+    loadData();
   }, []);
 
   const handleSubmit = async (e) => {
@@ -34,10 +40,10 @@ export default function Payments() {
         ...form,
         amount: Number(form.amount),
       });
-      setForm({ date: "", payee: "", reason: "", amount: "", method: "cash" });
+      toast.success("✅ Đã lưu phiếu chi");
       const res = await api.get("/journals/payments");
       setData(res.data);
-      toast.success("✅ Đã lưu phiếu chi");
+      setForm({ date: "", payee: "", reason: "", amount: "", method: "cash" });
     } catch {
       toast.error("❌ Lỗi khi lưu phiếu chi");
     } finally {
@@ -46,42 +52,23 @@ export default function Payments() {
   };
 
   const handleExport = async (row) => {
-    const container = document.createElement("div");
-    container.style.position = "absolute";
-    container.style.left = "-9999px";
-    document.body.appendChild(container);
-
-    const root = createRoot(container);
-    root.render(
-      <PaymentPDF
-        info={{
-          businessName: profile.businessName || "Hộ/CN kinh doanh",
-          address: profile.address || "—",
-          payee: row.payee,
-          reason: row.reason,
-          amount: row.amount,
-          date: new Date(row.date).toLocaleDateString("vi-VN"),
-          method: row.method,
-        }}
-      />
-    );
-
-    setTimeout(async () => {
-      try {
-        const canvas = await html2canvas(container, { scale: 2 });
-        const pdf = new jsPDF("p", "mm", "a4");
-        const w = pdf.internal.pageSize.getWidth();
-        const h = (canvas.height * w) / canvas.width;
-        pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, w, h);
-        pdf.save(`phieu-chi-${row.id}.pdf`);
-        toast.success("📄 Xuất PDF thành công");
-      } catch {
-        toast.error("❌ Xuất PDF thất bại");
-      } finally {
-        root.unmount();
-        container.remove();
-      }
-    }, 300);
+    try {
+      const res = await api.get(`/reports/payment/pdf?id=${row.id}`, {
+        responseType: "blob",
+      });
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `phieu-chi-${row.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(link.href);
+      toast.success("📄 Đã tải phiếu chi");
+    } catch (e) {
+      console.error(e);
+      toast.error("❌ Xuất PDF thất bại");
+    }
   };
 
   const handleDelete = async (id) => {
@@ -100,6 +87,7 @@ export default function Payments() {
       <Toaster position="top-right" />
       <h2 className="text-2xl font-bold mb-4">💸 Phiếu chi (02-TT)</h2>
 
+      {/* Form nhập phiếu chi */}
       <form
         onSubmit={handleSubmit}
         className="flex flex-wrap gap-4 mb-6 bg-white p-4 rounded-lg shadow"
@@ -162,6 +150,7 @@ export default function Payments() {
         </div>
       </form>
 
+      {/* Bảng dữ liệu */}
       <table className="w-full border text-sm bg-white rounded shadow">
         <thead className="bg-gray-100">
           <tr>
@@ -205,10 +194,6 @@ export default function Payments() {
           ))}
         </tbody>
       </table>
-
-      <div style={{ position: "absolute", left: -9999 }}>
-        <PaymentPDF ref={pdfRef} info={form} />
-      </div>
     </div>
   );
 }

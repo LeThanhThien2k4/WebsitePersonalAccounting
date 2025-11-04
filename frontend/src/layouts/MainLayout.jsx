@@ -9,8 +9,9 @@ const links = [
   { to: "/inventory", label: "Tồn kho", icon: <Archive size={18} /> },
   { to: "/payroll", label: "Lương", icon: <Users size={18} /> },
   { to: "/employees", label: "Nhân viên", icon: <IdCard size={18} /> },
+  { to: "/ledgers", label: "Sổ kế toán", icon: <BookOpen size={18} /> },
   { to: "/reports", label: "Báo cáo", icon: <BookOpen size={18} /> },
-  { to: "/profile", label: "Hồ sơ doanh nghiệp", icon: <IdCard size={18} /> }, // ✅ thêm mục này
+  { to: "/profile", label: "Hồ sơ doanh nghiệp", icon: <IdCard size={18} /> },
 ];
 
 const handleLogout = () => {
