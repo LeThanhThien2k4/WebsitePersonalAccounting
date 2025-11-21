@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
-
+import toast from "react-hot-toast";
 export default function Inventory() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
@@ -30,30 +30,52 @@ export default function Inventory() {
     loadItems();
   }, []);
 
-  // ====== THÊM HÀNG HÓA ======
-  const handleAddItem = async () => {
-    try {
-      await api.post("/inventory/items", {
-        ...newItem,
-        unitPriceIn: Number(newItem.unitPriceIn),
-        unitPriceOut: Number(newItem.unitPriceOut),
-      });
-      setNewItem({
-        code: "",
-        name: "",
-        category: "",
-        unit: "",
-        unitPriceIn: "",
-        unitPriceOut: "",
-        note: "",
-      });
-      await loadItems();
-      alert("✅ Đã thêm hàng hóa mới");
-    } catch (err) {
-      console.error("❌ Lỗi khi thêm hàng hóa:", err);
-      alert("Lỗi khi thêm hàng hóa");
-    }
-  };
+  
+  
+// ====== THÊM HÀNG HÓA ======
+const handleAddItem = async () => {
+  const { code, name, unit, unitPriceIn, unitPriceOut } = newItem;
+
+  // ==== Validate bắt buộc ====
+  if (!code?.trim()) return toast.error("Mã hàng hóa không được để trống");
+  if (!name?.trim()) return toast.error("Tên hàng hóa không được để trống");
+  if (!unit?.trim()) return toast.error("Đơn vị tính không được để trống");
+
+  // ==== Validate giá ====
+  const inPrice = Number(unitPriceIn);
+  const outPrice = Number(unitPriceOut);
+
+  if (isNaN(inPrice) || inPrice < 0)
+    return toast.error("Đơn giá nhập phải là số >= 0");
+
+  if (isNaN(outPrice) || outPrice < 0)
+    return toast.error("Đơn giá xuất phải là số >= 0");
+
+  try {
+    await api.post("/inventory/items", {
+      ...newItem,
+      unitPriceIn: inPrice,
+      unitPriceOut: outPrice,
+    });
+
+    // Reset form
+    setNewItem({
+      code: "",
+      name: "",
+      category: "",
+      unit: "",
+      unitPriceIn: "",
+      unitPriceOut: "",
+      note: "",
+    });
+
+    await loadItems();
+    toast.success("Đã thêm hàng hóa mới");
+  } catch (err) {
+    console.error("❌ Lỗi khi thêm hàng hóa:", err);
+    toast.error(err.response?.data?.error || "Lỗi khi thêm hàng hóa");
+  }
+};
 
   // ====== XÓA HÀNG HÓA ======
   const handleDelete = async (id) => {
@@ -63,6 +85,7 @@ export default function Inventory() {
       await loadItems();
     } catch (err) {
       console.error("❌ Lỗi xóa hàng:", err);
+      toast.error(err.response?.data?.error || "Lỗi khi xóa hàng hóa");
     }
   };
 
@@ -81,7 +104,7 @@ export default function Inventory() {
       });
       setEditingItem(null);
       await loadItems();
-      alert("✅ Đã cập nhật hàng hóa");
+      toast.success("Đã cập nhật hàng hóa");
     } catch (err) {
       console.error("❌ Lỗi cập nhật hàng hóa:", err);
       alert("Lỗi khi cập nhật hàng hóa");

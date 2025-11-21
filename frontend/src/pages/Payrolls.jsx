@@ -26,6 +26,19 @@ export default function Payrolls() {
       setLoading(false);
     }
   };
+  const deletePeriod = async (id) => {
+  if (!window.confirm("Bạn có chắc muốn xóa kỳ lương này?")) return;
+
+  try {
+    await api.delete(`/payrolls/periods/${id}`);
+    toast.success("Đã xóa kỳ lương");
+    await loadPeriods();
+    setCurrent(null);
+  } catch (err) {
+    toast.error(err.response?.data?.error || "Không thể xóa kỳ lương");
+  }
+};
+
 
   const openPeriod = async (id) => {
     const { data } = await api.get(`/payrolls/periods/${id}`);
@@ -165,31 +178,49 @@ export default function Payrolls() {
         </button>
       </div>
 
-      {/* Danh sách kỳ */}
-      <div className="border rounded">
-        <div className="px-3 py-2 font-medium border-b">Kỳ đã tạo</div>
-        <div className="max-h-56 overflow-auto divide-y">
-          {periods.map((p) => (
-            <div
-              key={p.id}
-              className="px-3 py-2 flex items-center justify-between"
+{/* Danh sách kỳ */}
+<div className="border rounded">
+  <div className="px-3 py-2 font-medium border-b">Kỳ đã tạo</div>
+
+  <div className="max-h-56 overflow-auto divide-y">
+    {periods.map((p) => (
+      <div
+        key={p.id}
+        className="px-3 py-2 flex items-center justify-between"
+      >
+        {/* Thông tin kỳ */}
+        <div className="flex items-center gap-3">
+          <div>
+            {p.month}/{p.year}
+          </div>
+          {statusBadge(p.status)}
+        </div>
+
+        {/* Nút thao tác */}
+        <div className="flex gap-4">
+          {/* Mở kỳ */}
+          <button
+            className="text-blue-600 underline"
+            onClick={() => openPeriod(p.id)}
+          >
+            Mở
+          </button>
+
+          {/* Xóa kỳ — chỉ cho phép khi kỳ còn DRAFT */}
+          {p.status === "DRAFT" && (
+            <button
+              className="text-red-600 underline"
+              onClick={() => deletePeriod(p.id)}
             >
-              <div className="flex items-center gap-3">
-                <div>
-                  {p.month}/{p.year}
-                </div>
-                {statusBadge(p.status)}
-              </div>
-              <button
-                className="text-blue-600 underline"
-                onClick={() => openPeriod(p.id)}
-              >
-                Mở
-              </button>
-            </div>
-          ))}
+              Xóa
+            </button>
+          )}
         </div>
       </div>
+    ))}
+  </div>
+</div>
+
 
       {/* Chi tiết kỳ */}
       {current && (

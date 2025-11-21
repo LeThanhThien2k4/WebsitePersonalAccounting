@@ -14,30 +14,77 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await api.get("/users/profile");
-        setForm(res.data || {});
-        if (!res.data.businessName) setEditMode(true);
-      } catch {
-        toast.error("Không thể tải hồ sơ");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
-  }, []);
-
-  const handleSave = async () => {
+ useEffect(() => {
+  const fetchProfile = async () => {
     try {
-      await api.put("/users/profile", form);
-      toast.success("✅ Đã lưu thông tin hồ sơ");
-      setEditMode(false);
+      const res = await api.get("/users/profile");
+      const p = res.data || {};
+
+      setForm({
+        businessName: p.businessName || "",
+        address: p.address || "",
+        taxCode: p.taxCode || "",
+        bankAccount: p.bankAccount || "",
+        bankName: p.bankName || "",
+        phone: p.phone || "",
+      });
+
+      if (!p.businessName) setEditMode(true);
     } catch {
-      toast.error("Lỗi khi cập nhật thông tin");
+      toast.error("Không thể tải hồ sơ");
+    } finally {
+      setLoading(false);
     }
   };
+  fetchProfile();
+}, []);
+
+const handleSave = async () => {
+  // Ép tất cả về string để tránh lỗi null.trim()
+  const payload = {
+    businessName: form.businessName?.trim() || "",
+    address: form.address?.trim() || "",
+    taxCode: form.taxCode?.trim() || "",
+    bankAccount: form.bankAccount?.trim() || "",
+    bankName: form.bankName?.trim() || "",
+    phone: form.phone?.trim() || "",
+  };
+
+  // ===== FE VALIDATE =====
+  if (!payload.businessName) return toast.error("Tên hộ/cá nhân kinh doanh không được để trống");
+  if (!payload.address) return toast.error("Địa chỉ không được để trống");
+
+  if (!payload.taxCode)
+    return toast.error("Mã số thuế không được để trống");
+
+  if (!/^\d{10}(\d{3})?$/.test(payload.taxCode))
+    return toast.error("Mã số thuế không hợp lệ (10 hoặc 13 số)");
+
+  if (!payload.bankAccount)
+    return toast.error("Số tài khoản không được để trống");
+
+  if (!/^\d+$/.test(payload.bankAccount))
+    return toast.error("Số tài khoản phải là số");
+
+  if (!payload.bankName)
+    return toast.error("Tên ngân hàng không được để trống");
+
+  if (!payload.phone)
+    return toast.error("Số điện thoại không được để trống");
+
+  if (!/^(0|\+84)\d{9}$/.test(payload.phone))
+    return toast.error("Số điện thoại không hợp lệ");
+
+  try {
+    await api.put("/users/profile", payload);
+    toast.success("✅ Đã lưu thông tin hồ sơ");
+    setEditMode(false);
+  } catch (err) {
+    toast.error(err.response?.data?.error || "Lỗi khi cập nhật thông tin");
+  }
+};
+
+
 
   if (loading) return <p>Đang tải...</p>;
 

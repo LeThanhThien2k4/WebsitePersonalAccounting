@@ -1,9 +1,6 @@
-import React, { useEffect, useState, useRef } from "react";
+// frontend/src/pages/Receipts.jsx
+import React, { useEffect, useState } from "react";
 import api from "../api/axios";
-import html2canvas from "html2canvas-pro";
-import jsPDF from "jspdf";
-import ReceiptPDF from "../components/ReceiptPDF.jsx";
-import { createRoot } from "react-dom/client";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function Receipts() {
@@ -17,71 +14,83 @@ export default function Receipts() {
     method: "cash",
   });
   const [loading, setLoading] = useState(false);
-  const pdfRef = useRef();
 
   useEffect(() => {
-    api.get("/users/profile").then((res) => setProfile(res.data || {}));
-    api.get("/journals/receipts").then((res) => setData(res.data));
+    const load = async () => {
+      try {
+        const [u, r] = await Promise.all([
+          api.get("/users/profile"),
+          api.get("/journals/receipts"),
+        ]);
+        setProfile(u.data || {});
+        setData(r.data || []);
+      } catch {
+        toast.error("Không tải được dữ liệu phiếu thu");
+      }
+    };
+    load();
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.date || !form.payer || !form.amount)
-      return toast.error("Vui lòng nhập đầy đủ dữ liệu");
+
+    if (!form.date) return toast.error("Vui lòng chọn ngày");
+    if (!form.payer.trim()) return toast.error("Vui lòng nhập người nộp");
+    const amountNum = Number(form.amount);
+    if (!form.amount || !Number.isFinite(amountNum) || amountNum <= 0) {
+      return toast.error("Số tiền phải lớn hơn 0");
+    }
+
     setLoading(true);
     try {
       await api.post("/journals/receipts", {
         ...form,
-        amount: Number(form.amount),
+        amount: amountNum,
       });
-      setForm({ date: "", payer: "", reason: "", amount: "", method: "cash" });
-      const res = await api.get("/journals/receipts");
-      setData(res.data);
+
       toast.success("✅ Đã lưu phiếu thu");
-    } catch {
-      toast.error("❌ Lỗi khi lưu phiếu thu");
+
+      const res = await api.get("/journals/receipts");
+      setData(res.data || []);
+
+      setForm({
+        date: "",
+        payer: "",
+        reason: "",
+        amount: "",
+        method: "cash",
+      });
+    } catch (err) {
+      const msg = err.response?.data?.error || "❌ Lỗi khi lưu phiếu thu";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
 
   const handleExport = async (row) => {
-    const container = document.createElement("div");
-    container.style.position = "absolute";
-    container.style.left = "-9999px";
-    document.body.appendChild(container);
+    try {
+      toast.loading("Đang xuất PDF...", { id: `r-${row.id}` });
+      const res = await api.get("/export/receipt/pdf", {
+        params: { id: row.id },
+        responseType: "blob",
+      });
 
-    const root = createRoot(container);
-    root.render(
-      <ReceiptPDF
-        info={{
-          businessName: profile.businessName || "Hộ/CN kinh doanh",
-          address: profile.address || "—",
-          payer: row.payer,
-          reason: row.reason,
-          amount: row.amount,
-          date: new Date(row.date).toLocaleDateString("vi-VN"),
-          method: row.method,
-        }}
-      />
-    );
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `phieu-thu-${row.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
 
-    setTimeout(async () => {
-      try {
-        const canvas = await html2canvas(container, { scale: 2 });
-        const pdf = new jsPDF("p", "mm", "a4");
-        const w = pdf.internal.pageSize.getWidth();
-        const h = (canvas.height * w) / canvas.width;
-        pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, w, h);
-        pdf.save(`phieu-thu-${row.id}.pdf`);
-        toast.success("📄 Xuất PDF thành công");
-      } catch {
-        toast.error("❌ Xuất PDF thất bại");
-      } finally {
-        root.unmount();
-        container.remove();
-      }
-    }, 300);
+      toast.success("📄 Đã tải phiếu thu", { id: `r-${row.id}` });
+    } catch (err) {
+      console.error(err);
+      toast.error("❌ Xuất PDF thất bại", { id: `r-${row.id}` });
+    }
   };
 
   const handleDelete = async (id) => {
@@ -90,8 +99,9 @@ export default function Receipts() {
       await api.delete(`/journals/receipts/${id}`);
       setData((prev) => prev.filter((r) => r.id !== id));
       toast.success("🗑️ Đã xóa phiếu thu");
-    } catch {
-      toast.error("❌ Không thể xóa phiếu thu");
+    } catch (err) {
+      const msg = err.response?.data?.error || "❌ Không thể xóa phiếu thu";
+      toast.error(msg);
     }
   };
 
@@ -100,6 +110,7 @@ export default function Receipts() {
       <Toaster position="top-right" />
       <h2 className="text-2xl font-bold mb-4">📥 Phiếu thu (01-TT)</h2>
 
+      {/* Form nhập phiếu thu */}
       <form
         onSubmit={handleSubmit}
         className="flex flex-wrap gap-4 mb-6 bg-white p-4 rounded-lg shadow"
@@ -113,44 +124,60 @@ export default function Receipts() {
             className="border rounded p-2"
           />
         </div>
+
         <div className="flex flex-col">
           <label>Người nộp</label>
           <input
             value={form.payer}
-            onChange={(e) => setForm({ ...form, payer: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, payer: e.target.value })
+            }
             className="border rounded p-2"
             placeholder="Nguyễn Văn A"
           />
         </div>
+
         <div className="flex flex-col">
           <label>Lý do</label>
           <input
             value={form.reason}
-            onChange={(e) => setForm({ ...form, reason: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, reason: e.target.value })
+            }
             className="border rounded p-2"
             placeholder="Thu tiền bán hàng"
           />
         </div>
+
         <div className="flex flex-col">
           <label>Số tiền</label>
           <input
             type="number"
             value={form.amount}
-            onChange={(e) => setForm({ ...form, amount: e.target.value })}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (Number(v) < 0) return; // chặn âm
+              setForm({ ...form, amount: v });
+            }}
             className="border rounded p-2 w-32"
+            min="0"
           />
         </div>
+
         <div className="flex flex-col">
           <label>Phương thức</label>
           <select
             value={form.method}
-            onChange={(e) => setForm({ ...form, method: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, method: e.target.value })
+            }
             className="border rounded p-2"
           >
             <option value="cash">Tiền mặt</option>
             <option value="bank">Chuyển khoản</option>
           </select>
         </div>
+
         <div className="flex items-end gap-2">
           <button
             type="submit"
@@ -162,6 +189,7 @@ export default function Receipts() {
         </div>
       </form>
 
+      {/* Bảng dữ liệu */}
       <table className="w-full border text-sm bg-white rounded shadow">
         <thead className="bg-gray-100">
           <tr>
@@ -203,12 +231,15 @@ export default function Receipts() {
               </td>
             </tr>
           ))}
+          {data.length === 0 && (
+            <tr>
+              <td className="p-2 border text-center" colSpan={6}>
+                Chưa có phiếu thu nào
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
-
-      <div style={{ position: "absolute", left: -9999 }}>
-        <ReceiptPDF ref={pdfRef} info={form} />
-      </div>
     </div>
   );
 }

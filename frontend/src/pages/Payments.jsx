@@ -1,3 +1,4 @@
+// frontend/src/pages/Payments.jsx
 import React, { useEffect, useState } from "react";
 import api from "../api/axios";
 import toast, { Toaster } from "react-hot-toast";
@@ -24,7 +25,7 @@ export default function Payments() {
         setProfile(u.data || {});
         setData(p.data || []);
       } catch {
-        toast.error("Không tải được dữ liệu");
+        toast.error("Không tải được dữ liệu phiếu chi");
       }
     };
     loadData();
@@ -32,20 +33,37 @@ export default function Payments() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.date || !form.payee || !form.amount)
-      return toast.error("Vui lòng nhập đủ thông tin!");
+
+    if (!form.date) return toast.error("Vui lòng chọn ngày");
+    if (!form.payee.trim()) return toast.error("Vui lòng nhập người nhận");
+
+    const amountNum = Number(form.amount);
+    if (!form.amount || !Number.isFinite(amountNum) || amountNum <= 0) {
+      return toast.error("Số tiền phải lớn hơn 0");
+    }
+
     setLoading(true);
     try {
       await api.post("/journals/payments", {
         ...form,
-        amount: Number(form.amount),
+        amount: amountNum,
       });
+
       toast.success("✅ Đã lưu phiếu chi");
+
       const res = await api.get("/journals/payments");
-      setData(res.data);
-      setForm({ date: "", payee: "", reason: "", amount: "", method: "cash" });
-    } catch {
-      toast.error("❌ Lỗi khi lưu phiếu chi");
+      setData(res.data || []);
+
+      setForm({
+        date: "",
+        payee: "",
+        reason: "",
+        amount: "",
+        method: "cash",
+      });
+    } catch (err) {
+      const msg = err.response?.data?.error || "❌ Lỗi khi lưu phiếu chi";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -53,21 +71,27 @@ export default function Payments() {
 
   const handleExport = async (row) => {
     try {
-      const res = await api.get(`/reports/payment/pdf?id=${row.id}`, {
+      toast.loading("Đang xuất PDF...", { id: `p-${row.id}` });
+
+      const res = await api.get("/export/payment/pdf", {
+        params: { id: row.id },
         responseType: "blob",
       });
+
       const blob = new Blob([res.data], { type: "application/pdf" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `phieu-chi-${row.id}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(link.href);
-      toast.success("📄 Đã tải phiếu chi");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `phieu-chi-${row.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      toast.success("📄 Đã tải phiếu chi", { id: `p-${row.id}` });
     } catch (e) {
       console.error(e);
-      toast.error("❌ Xuất PDF thất bại");
+      toast.error("❌ Xuất PDF thất bại", { id: `p-${row.id}` });
     }
   };
 
@@ -77,8 +101,9 @@ export default function Payments() {
       await api.delete(`/journals/payments/${id}`);
       setData((prev) => prev.filter((p) => p.id !== id));
       toast.success("🗑️ Đã xóa phiếu chi");
-    } catch {
-      toast.error("❌ Không thể xóa phiếu chi");
+    } catch (err) {
+      const msg = err.response?.data?.error || "❌ Không thể xóa phiếu chi";
+      toast.error(msg);
     }
   };
 
@@ -97,48 +122,66 @@ export default function Payments() {
           <input
             type="date"
             value={form.date}
-            onChange={(e) => setForm({ ...form, date: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, date: e.target.value })
+            }
             className="border rounded p-2"
           />
         </div>
+
         <div className="flex flex-col">
           <label>Người nhận</label>
           <input
             value={form.payee}
-            onChange={(e) => setForm({ ...form, payee: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, payee: e.target.value })
+            }
             className="border rounded p-2"
             placeholder="Nguyễn Văn B"
           />
         </div>
+
         <div className="flex flex-col">
           <label>Lý do</label>
           <input
             value={form.reason}
-            onChange={(e) => setForm({ ...form, reason: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, reason: e.target.value })
+            }
             className="border rounded p-2"
             placeholder="Chi tiền nhập hàng"
           />
         </div>
+
         <div className="flex flex-col">
           <label>Số tiền</label>
           <input
             type="number"
             value={form.amount}
-            onChange={(e) => setForm({ ...form, amount: e.target.value })}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (Number(v) < 0) return; // chặn âm
+              setForm({ ...form, amount: v });
+            }}
             className="border rounded p-2 w-32"
+            min="0"
           />
         </div>
+
         <div className="flex flex-col">
           <label>Phương thức</label>
           <select
             value={form.method}
-            onChange={(e) => setForm({ ...form, method: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, method: e.target.value })
+            }
             className="border rounded p-2"
           >
             <option value="cash">Tiền mặt</option>
             <option value="bank">Chuyển khoản</option>
           </select>
         </div>
+
         <div className="flex items-end gap-2">
           <button
             type="submit"
@@ -192,6 +235,13 @@ export default function Payments() {
               </td>
             </tr>
           ))}
+          {data.length === 0 && (
+            <tr>
+              <td className="p-2 border text-center" colSpan={6}>
+                Chưa có phiếu chi nào
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import React from "react";
+
 export default function EmployeeForm({ data, onClose, onSaved }) {
   const [form, setForm] = useState({
     code: data.code || "",
@@ -14,7 +15,20 @@ export default function EmployeeForm({ data, onClose, onSaved }) {
   });
   const [loading, setLoading] = useState(false);
 
+  const validate = () => {
+    if (!form.fullName.trim()) return "Họ tên không được bỏ trống";
+    if (!form.position.trim()) return "Chức vụ không được bỏ trống";
+
+    const salary = Number(form.baseSalary);
+    if (isNaN(salary) || salary < 0) return "Lương cơ bản phải là số >= 0";
+
+    return null;
+  };
+
   const save = async () => {
+    const message = validate();
+    if (message) return toast.error(message);
+
     setLoading(true);
     try {
       if (data.id) {

@@ -22,19 +22,54 @@ router.get("/items", verifyToken, async (req, res) => {
 router.post("/items", verifyToken, async (req, res) => {
   try {
     const { code, name, category, unit, unitPriceIn, unitPriceOut, note } = req.body;
-    const exist = await prisma.inventoryItem.findFirst({
+
+    // ====== Validate bắt buộc ======
+    if (!code || !code.trim()) {
+      return res.status(400).json({ error: "Mã hàng hóa không được để trống" });
+    }
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: "Tên hàng hóa không được để trống" });
+    }
+    if (!unit || !unit.trim()) {
+      return res.status(400).json({ error: "Đơn vị tính không được để trống" });
+    }
+
+    // ====== Validate số ======
+    const priceIn = Number(unitPriceIn);
+    const priceOut = Number(unitPriceOut);
+
+    if (isNaN(priceIn) || priceIn < 0) {
+      return res.status(400).json({ error: "Đơn giá nhập phải là số >= 0" });
+    }
+    if (isNaN(priceOut) || priceOut < 0) {
+      return res.status(400).json({ error: "Đơn giá xuất phải là số >= 0" });
+    }
+
+    // ====== Kiểm tra trùng mã hàng (unique) ======
+    const existCode = await prisma.inventoryItem.findFirst({
+      where: { code, createdBy: req.user.id },
+    });
+    if (existCode) {
+      return res.status(400).json({ error: "Mã hàng đã tồn tại" });
+    }
+
+    // ====== Kiểm tra trùng tên hàng ======
+    const existName = await prisma.inventoryItem.findFirst({
       where: { name, createdBy: req.user.id },
     });
-    if (exist) return res.status(400).json({ error: "Sản phẩm đã tồn tại" });
+    if (existName) {
+      return res.status(400).json({ error: "Tên hàng đã tồn tại" });
+    }
 
+    // ====== Tạo hàng hóa ======
     const item = await prisma.inventoryItem.create({
       data: {
         code,
         name,
         category,
         unit,
-        unitPriceIn: Number(unitPriceIn) || 0,
-        unitPriceOut: Number(unitPriceOut) || 0,
+        unitPriceIn: priceIn,
+        unitPriceOut: priceOut,
         note,
         quantity: 0,
         createdBy: req.user.id,
@@ -48,23 +83,34 @@ router.post("/items", verifyToken, async (req, res) => {
   }
 });
 
+
 // =========================
 // XÓA / CẬP NHẬT HÀNG HÓA
 // =========================
 router.delete("/items/:id", verifyToken, async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const item = await prisma.inventoryItem.findUnique({ where: { id } });
-    if (!item) return res.status(404).json({ error: "Không tìm thấy hàng hóa" });
 
-    await prisma.stockEntry.deleteMany({ where: { itemId: id } });
-    await prisma.stockOut.deleteMany({ where: { itemId: id } });
-    await prisma.inventoryItem.delete({ where: { id } });
+    const item = await prisma.inventoryItem.findUnique({
+      where: { id, createdBy: req.user.id }
+    });
+    if (!item)
+      return res.status(404).json({ error: "Không tìm thấy hàng hóa" });
+
+    // Xóa lịch sử giao dịch
+    await prisma.inventoryTxn.deleteMany({
+      where: { itemId: id }
+    });
+
+    // Xóa hàng hóa
+    await prisma.inventoryItem.delete({
+      where: { id }
+    });
 
     res.json({ message: "Đã xóa hàng hóa" });
   } catch (err) {
     console.error("❌ Lỗi khi xóa hàng hóa:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Không thể xóa hàng hóa" });
   }
 });
 

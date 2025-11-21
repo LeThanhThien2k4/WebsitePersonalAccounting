@@ -362,5 +362,34 @@ router.get("/periods/:id/print-05", async (req, res) => {
     generatedAt: new Date(),
   });
 });
+/* ========== DELETE PERIOD (DRAFT ONLY) ========== */
+
+router.delete("/periods/:id", async (req, res) => {
+  try {
+    const id = +req.params.id;
+    const ownerId = req.user.id;
+
+    const period = await prisma.payrollPeriod.findFirst({
+      where: { id, ownerId },
+    });
+
+    if (!period)
+      return res.status(404).json({ error: "Period not found" });
+
+    if (period.status !== "DRAFT")
+      return res.status(400).json({ error: "Chỉ được xóa kỳ ở trạng thái DRAFT" });
+
+    // Xóa payrollItem trước
+    await prisma.payrollItem.deleteMany({ where: { periodId: id } });
+
+    // Xóa kỳ lương
+    await prisma.payrollPeriod.delete({ where: { id } });
+
+    res.json({ message: "Đã xóa kỳ lương" });
+  } catch (err) {
+    console.error("❌ Lỗi xóa kỳ:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 export default router;
