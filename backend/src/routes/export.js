@@ -88,6 +88,7 @@ router.get("/receipt/pdf", verifyToken, async (req, res) => {
         businessName: user?.businessName || "Hộ/CN kinh doanh",
         address: user?.address || "—",
         payer: receipt.payer,
+        addressPayer: user?.address || "—",
         reason: receipt.reason,
         amount: receipt.amount,
         amountText: moneyToWordsVn(receipt.amount),

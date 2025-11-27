@@ -4,12 +4,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 
-/* ---------------- Bảng hàng hóa ---------------- */
+/* ==========================================================
+   COMPONENT BẢNG HÀNG HOÁ
+========================================================== */
 function LineItemsTable({ rows, setRows, editable = true, isEntry }) {
   const [inventory, setInventory] = useState([]);
 
   useEffect(() => {
-    api.get("/inventory/items").then((res) => setInventory(res.data));
+    api.get("/inventory/items").then((res) => setInventory(res.data || []));
   }, []);
 
   const update = (idx, key, val) => {
@@ -62,7 +64,7 @@ function LineItemsTable({ rows, setRows, editable = true, isEntry }) {
         <thead className="bg-gray-50">
           <tr>
             <th className="border p-2">STT</th>
-            <th className="border p-2">Tên hàng (chọn từ kho)</th>
+            <th className="border p-2">Tên hàng</th>
             <th className="border p-2">Mã</th>
             <th className="border p-2">ĐVT</th>
             <th className="border p-2">Theo chứng từ</th>
@@ -72,17 +74,19 @@ function LineItemsTable({ rows, setRows, editable = true, isEntry }) {
             {editable && <th className="border p-2">Xóa</th>}
           </tr>
         </thead>
+
         <tbody>
           {rows.map((r, i) => (
             <tr key={i}>
               <td className="border text-center">{i + 1}</td>
+
               <td className="border p-1">
                 <select
                   value={r.itemId || ""}
                   onChange={(e) => selectItem(i, e.target.value)}
                   className="border w-full p-1"
                 >
-                  <option value="">-- Chọn hàng hóa --</option>
+                  <option value="">-- Chọn hàng --</option>
                   {inventory.map((it) => (
                     <option key={it.id} value={it.id}>
                       {it.name}
@@ -90,32 +94,40 @@ function LineItemsTable({ rows, setRows, editable = true, isEntry }) {
                   ))}
                 </select>
               </td>
+
               <td className="border text-center">{r.code}</td>
               <td className="border text-center">{r.unit}</td>
-              <td className="border text-right">
+
+              <td className="border p-1">
                 <input
                   value={r.qtyDocumented}
-                  onChange={(e) => update(i, "qtyDocumented", e.target.value)}
+                  onChange={(e) =>
+                    update(i, "qtyDocumented", e.target.value)
+                  }
                   className="w-full border p-1 text-right"
                 />
               </td>
-              <td className="border text-right">
+
+              <td className="border p-1">
                 <input
                   value={r.qtyActual}
                   onChange={(e) => update(i, "qtyActual", e.target.value)}
                   className="w-full border p-1 text-right"
                 />
               </td>
-              <td className="border text-right">
+
+              <td className="border p-1">
                 <input
                   value={r.unitPrice}
                   onChange={(e) => update(i, "unitPrice", e.target.value)}
                   className="w-full border p-1 text-right"
                 />
               </td>
-              <td className="border text-right">
-                {Number(r.amount || 0).toLocaleString()}
+
+              <td className="border text-right p-1">
+                {Number(r.amount || 0).toLocaleString("vi-VN")}
               </td>
+
               {editable && (
                 <td className="border text-center">
                   <button
@@ -143,16 +155,20 @@ function LineItemsTable({ rows, setRows, editable = true, isEntry }) {
   );
 }
 
-/* ---------------- Component chính ---------------- */
-export default function VoucherMockupTT88({ type: initialType = "PNK" }) {
+/* ==========================================================
+   TRANG CHÍNH – TẠO & XEM PHIẾU
+========================================================== */
+export default function VoucherMockupTT88({ type: defaultType = "PNK" }) {
   const { id } = useParams();
   const nav = useNavigate();
-  const [type, setType] = useState(initialType);
+
+  const [type, setType] = useState(defaultType);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [voucherId, setVoucherId] = useState(null);
 
   const [touched, setTouched] = useState({});
+
   const [info, setInfo] = useState({
     businessName: "",
     address: "",
@@ -162,6 +178,7 @@ export default function VoucherMockupTT88({ type: initialType = "PNK" }) {
     reason: "",
     location: "",
   });
+
   const [rows, setRows] = useState([
     {
       itemId: null,
@@ -175,15 +192,32 @@ export default function VoucherMockupTT88({ type: initialType = "PNK" }) {
     },
   ]);
 
+  /* ========== LOAD PHIẾU NẾU ĐANG Ở CHẾ ĐỘ XEM / CHỈNH SỬA ========== */
+  useEffect(() => {
+    if (!id) return;
+    api
+      .get(`/inventory/voucher/${id}`)
+      .then((res) => {
+        setInfo(res.data.info);
+        setRows(res.data.items);
+        setSaved(true);
+        setVoucherId(res.data.info.id);
+      })
+      .catch(() => toast.error("Không tải được phiếu"));
+  }, [id]);
+
+  /* ========== TỔNG TIỀN ========== */
   const total = useMemo(
     () => rows.reduce((s, r) => s + Number(r.amount || 0), 0),
     [rows]
   );
 
+  /* ========== VALIDATE ========== */
   const required = (field) =>
     touched[field] && !info[field]?.trim()
       ? "border-red-500"
       : "border-gray-300";
+
   const markTouched = (field) =>
     setTouched((prev) => ({ ...prev, [field]: true }));
 
@@ -195,60 +229,89 @@ export default function VoucherMockupTT88({ type: initialType = "PNK" }) {
     total > 0 &&
     !rows.some((r) => !r.itemId || Number(r.qtyActual) <= 0);
 
-  /* === Lưu phiếu === */
+  /* ==========================================================
+     LƯU PHIẾU
+  ========================================================== */
   const saveVoucher = async () => {
     if (saving) return;
-    setTouched({ businessName: true, address: true, location: true });
+
+    setTouched({
+      businessName: true,
+      address: true,
+      location: true,
+    });
+
     if (!isValid) return toast.error("Vui lòng nhập đủ thông tin bắt buộc");
 
     try {
       setSaving(true);
-      const payload = { ...info, type, items: rows, totalAmount: total };
+
+      const payload = {
+        ...info,
+        type,
+        items: rows,
+        totalAmount: total,
+      };
+      if (!payload.voucherNo?.trim()) delete payload.voucherNo;
+
+
       const res = await api.post("/inventory/voucher", payload);
-      const vid = res.data.voucher?.id;
+
+      const vid = res.data.id || res.data.voucher?.id;
       setVoucherId(vid);
       setSaved(true);
-      toast.success("✅ Đã lưu phiếu thành công! Có thể xuất PDF.");
+
+      toast.success("Đã lưu phiếu thành công!");
     } catch (err) {
       console.error("❌ Lỗi lưu phiếu:", err.response?.data || err.message);
-      toast.error("Lưu phiếu thất bại!");
+      toast.error(err.response?.data?.error || "Lưu phiếu thất bại!");
     } finally {
       setSaving(false);
     }
   };
 
-  /* === Xuất PDF === */
+  /* ==========================================================
+     XUẤT PDF
+  ========================================================== */
   const exportPDF = async () => {
     const exportId = voucherId || id;
+
     if (!exportId)
       return toast.error("Chỉ có thể xuất PDF sau khi đã lưu phiếu");
+
     try {
       toast.loading("Đang tạo PDF...", { id: "pdf" });
+
       const res = await api.get("/export/inventory/pdf", {
         params: { id: exportId, type },
         responseType: "blob",
       });
+
       const blob = new Blob([res.data], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
+
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${info.voucherNo || "phieu"}_${type}.pdf`;
+      a.download = `${info.voucherNo || exportId}_${type}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("📄 Xuất PDF thành công!", { id: "pdf" });
+
+      toast.success("Xuất PDF thành công!", { id: "pdf" });
+
       setTimeout(() => nav("/inventory/voucher"), 1000);
     } catch (err) {
-      console.error("❌ Xuất PDF lỗi:", err);
-      toast.error("Không thể xuất PDF", { id: "pdf" });
+      console.error("❌ Lỗi PDF:", err);
+      toast.error("Xuất PDF thất bại!", { id: "pdf" });
     }
   };
 
+  /* ==========================================================
+     RENDER GIAO DIỆN
+  ========================================================== */
   return (
     <div className="max-w-6xl mx-auto p-4">
       <h2 className="text-xl font-bold mb-2">
-        {type === "PNK"
-          ? "Phiếu Nhập Kho (03-VT)"
-          : "Phiếu Xuất Kho (04-VT)"}
+        {type === "PNK" ? "Phiếu Nhập Kho (03-VT)" : "Phiếu Xuất Kho (04-VT)"}
       </h2>
 
       {/* FORM THÔNG TIN */}
@@ -265,6 +328,7 @@ export default function VoucherMockupTT88({ type: initialType = "PNK" }) {
               setInfo({ ...info, businessName: e.target.value })
             }
           />
+
           <label>Địa chỉ *</label>
           <input
             className={`border rounded w-full px-2 py-1 mb-1 ${required(
@@ -274,6 +338,7 @@ export default function VoucherMockupTT88({ type: initialType = "PNK" }) {
             onBlur={() => markTouched("address")}
             onChange={(e) => setInfo({ ...info, address: e.target.value })}
           />
+
           <label>Số phiếu</label>
           <input
             className="border rounded w-full px-2 py-1 mb-2"
@@ -297,6 +362,7 @@ export default function VoucherMockupTT88({ type: initialType = "PNK" }) {
               })
             }
           />
+
           <label>Địa điểm nhập/xuất *</label>
           <input
             className={`border rounded w-full px-2 py-1 mb-1 ${required(
@@ -306,6 +372,7 @@ export default function VoucherMockupTT88({ type: initialType = "PNK" }) {
             onBlur={() => markTouched("location")}
             onChange={(e) => setInfo({ ...info, location: e.target.value })}
           />
+
           <label>Lý do / ghi chú</label>
           <input
             className="border rounded w-full px-2 py-1 mb-2"
@@ -326,8 +393,9 @@ export default function VoucherMockupTT88({ type: initialType = "PNK" }) {
       {/* NÚT HÀNH ĐỘNG */}
       <div className="flex justify-between mt-4 items-center">
         <div>
-          Tổng tiền: <b>{total.toLocaleString()} đ</b>
+          Tổng tiền: <b>{total.toLocaleString("vi-VN")} đ</b>
         </div>
+
         <div className="flex gap-3">
           <button
             onClick={saveVoucher}
