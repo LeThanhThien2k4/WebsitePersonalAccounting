@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Sổ chi phí sản xuất, kinh doanh (S3-HKD)</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        font-family: "Times New Roman", serif;
+        font-size: 12px;
+      }
+
+      body {
+        margin: 20px;
+      }
+
+      .header {
+        width: 100%;
+        margin-bottom: 8px;
+      }
+
+      .header-left {
+        float: left;
+        width: 60%;
+      }
+
+      .header-right {
+        float: right;
+        width: 40%;
+        text-align: center;
+      }
+
+      .clear {
+        clear: both;
+      }
+
+      .title-block {
+        text-align: center;
+        margin-top: 10px;
+        margin-bottom: 5px;
+      }
+
+      .title-block h2 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: bold;
+      }
+
+      .subtitle {
+        text-align: center;
+        margin-bottom: 4px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+      }
+
+      th,
+      td {
+        border: 1px solid #000;
+        padding: 3px 4px;
+      }
+
+      th {
+        text-align: center;
+        vertical-align: middle;
+      }
+
+      td.num {
+        text-align: right;
+      }
+
+      td.center {
+        text-align: center;
+      }
+
+      .no-border {
+        border: none;
+      }
+
+      .bold {
+        font-weight: bold;
+      }
+
+      .sign-block {
+        width: 100%;
+        margin-top: 25px;
+        text-align: center;
+      }
+
+      .sign-col {
+        width: 50%;
+        display: inline-block;
+        vertical-align: top;
+      }
+
+      .italic {
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- HEADER -->
+    <div class="header">
+      <div class="header-left">
+        <div><b>HỘ, CÁ NHÂN KINH DOANH:</b> <%= businessName %></div>
+        <div><b>Địa chỉ:</b> <%= address %></div>
+      </div>
+      <div class="header-right">
+        <div><b>Mẫu số S3-HKD</b></div>
+        <div>(Ban hành kèm theo Thông tư số 88/2021/TT-BTC</div>
+        <div>ngày 11/10/2021 của Bộ Tài chính)</div>
+      </div>
+      <div class="clear"></div>
+    </div>
+
+    <!-- TITLE -->
+    <div class="title-block">
+      <h2>SỔ CHI PHÍ SẢN XUẤT, KINH DOANH</h2>
+    </div>
+    <div class="subtitle">
+      Tên địa điểm kinh doanh: .....................................................
+    </div>
+    <div class="subtitle">
+      Năm: <%= year %>
+    </div>
+
+    <!-- TABLE -->
+    <table>
+      <tr>
+        <th rowspan="2">Ngày, tháng ghi sổ<br />(A)</th>
+        <th rowspan="2">Số hiệu<br />(B)</th>
+        <th rowspan="2">Ngày, tháng<br />chứng từ<br />(C)</th>
+        <th rowspan="2">Diễn giải<br />(D)</th>
+        <th rowspan="2">Tổng số tiền<br />(1)</th>
+        <th colspan="8">
+          Tập hợp chi phí theo các yếu tố sản xuất, kinh doanh - Chia ra
+        </th>
+      </tr>
+      <tr>
+        <th>Chi phí nhân công<br />(2)</th>
+        <th>Chi phí điện<br />(3)</th>
+        <th>Chi phí nước<br />(4)</th>
+        <th>Chi phí viễn thông<br />(5)</th>
+        <th>Chi phí thuê kho bãi,<br />mặt bằng kinh doanh<br />(6)</th>
+        <th>Chi phí quản lý<br />(7)</th>
+        <th>Chi phí khác<br />(8)</th>
+      </tr>
+
+      <% if (rows && rows.length) { %>
+        <% rows.forEach(function(r) { %>
+          <tr>
+            <td class="center"><%= r.dateVN %></td>
+            <td class="center"><%= r.docNo %></td>
+            <td class="center"><%= r.docDateVN %></td>
+            <td><%= r.desc %></td>
+            <td class="num"><%= r.total.toLocaleString("vi-VN") %></td>
+            <td class="num"><%= r.costLabor.toLocaleString("vi-VN") %></td>
+            <td class="num"><%= r.costElectric.toLocaleString("vi-VN") %></td>
+            <td class="num"><%= r.costWater.toLocaleString("vi-VN") %></td>
+            <td class="num"><%= r.costTelecom.toLocaleString("vi-VN") %></td>
+            <td class="num"><%= r.costRent.toLocaleString("vi-VN") %></td>
+            <td class="num"><%= r.costAdmin.toLocaleString("vi-VN") %></td>
+            <td class="num"><%= r.costOther.toLocaleString("vi-VN") %></td>
+          </tr>
+        <% }) %>
+      <% } else { %>
+        <tr>
+          <td colspan="12" class="center">
+            (Chưa có dữ liệu chi phí trong kỳ)
+          </td>
+        </tr>
+      <% } %>
+
+      <tr class="bold">
+        <td colspan="4">Tổng cộng</td>
+        <td class="num"><%= totals.total.toLocaleString("vi-VN") %></td>
+        <td class="num"><%= totals.costLabor.toLocaleString("vi-VN") %></td>
+        <td class="num"><%= totals.costElectric.toLocaleString("vi-VN") %></td>
+        <td class="num"><%= totals.costWater.toLocaleString("vi-VN") %></td>
+        <td class="num"><%= totals.costTelecom.toLocaleString("vi-VN") %></td>
+        <td class="num"><%= totals.costRent.toLocaleString("vi-VN") %></td>
+        <td class="num"><%= totals.costAdmin.toLocaleString("vi-VN") %></td>
+        <td class="num"><%= totals.costOther.toLocaleString("vi-VN") %></td>
+      </tr>
+    </table>
+
+    <div style="margin-top: 10px; font-size: 11px;">
+      - Sổ này có ...... trang, đánh số từ trang 01 đến trang ...<br />
+      - Ngày mở sổ: ............
+    </div>
+
+    <!-- SIGN -->
+    <div class="sign-block">
+      <div class="sign-col">
+        <div class="bold">NGƯỜI LẬP SỔ</div>
+        <div class="italic">(Ký, họ tên)</div>
+      </div>
+      <div class="sign-col">
+        <div class="italic">
+          Ngày ..... tháng ..... năm .....
+        </div>
+        <div class="bold">
+          NGƯỜI ĐẠI DIỆN HỘ KINH DOANH/CÁ NHÂN KINH DOANH
+        </div>
+        <div class="italic">(Ký, họ tên, đóng dấu)</div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>S2-HKD</title>
+
+  <style>
+    body { font-family: "Times New Roman"; font-size: 14px; line-height: 1.3; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #000; padding: 4px; text-align: center; }
+    .left { text-align: left; }
+    .bold { font-weight: bold; }
+    .title { text-align: center; font-size: 20px; font-weight: bold; margin-top: 10px; }
+    .subtitle { text-align: center; margin-bottom: 15px; }
+    .footer td { border: none; padding-top: 35px; text-align: center; }
+  </style>
+</head>
+
+<body>
+
+<table style="border: 0">
+  <tr>
+    <td class="left bold">HỘ, CÁ NHÂN KINH DOANH: <%= item.user?.businessName || "" %></td>
+    <td class="right">Mẫu số S2-HKD<br/><span style="font-size: 12px">Thông tư 88/2021/TT-BTC</span></td>
+  </tr>
+  <tr>
+    <td class="left bold">Địa chỉ: <%= item.user?.address || "" %></td>
+    <td></td>
+  </tr>
+</table>
+
+<div class="title">SỔ CHI TIẾT VẬT LIỆU, DỤNG CỤ, SẢN PHẨM, HÀNG HÓA</div>
+<div class="subtitle">
+  Tên vật liệu, dụng cụ, sản phẩm, hàng hóa: <%= item.name %> <br/>
+  Năm: <%= year %>
+</div>
+
+<table>
+  <tr class="bold">
+    <td rowspan="2">Số hiệu<br/>CT (A)</td>
+    <td rowspan="2">Ngày tháng<br/>CT (B)</td>
+    <td rowspan="2">Diễn giải<br/>(C)</td>
+    <td rowspan="2">Đơn vị tính<br/>(D)</td>
+    <td colspan="2">Nhập</td>
+    <td colspan="2">Xuất</td>
+    <td colspan="2">Tồn</td>
+    <td rowspan="2">Ghi chú</td>
+  </tr>
+
+  <tr class="bold">
+    <td>SL (1)</td><td>Tiền (2)</td>
+    <td>SL (3)</td><td>Tiền (4)</td>
+    <td>SL (5)</td><td>Tiền (6)</td>
+  </tr>
+
+  <!-- Số dư đầu kỳ -->
+  <tr>
+    <td colspan="4" class="left bold">Số dư đầu kỳ</td>
+    <td></td><td></td><td></td><td></td>
+    <td><%= beginQty %></td>
+    <td><%= beginValue.toLocaleString("vi-VN") %></td>
+    <td></td>
+  </tr>
+
+  <!-- Phát sinh nhập -->
+  <tr>
+    <td colspan="4" class="left bold">Cộng phát sinh trong kỳ</td>
+    <td><%= qtyIn %></td>
+    <td><%= valueIn.toLocaleString("vi-VN") %></td>
+    <td><%= qtyOut %></td>
+    <td><%= valueOut.toLocaleString("vi-VN") %></td>
+    <td></td><td></td>
+    <td></td>
+  </tr>
+
+  <!-- Số dư cuối kỳ -->
+  <tr>
+    <td colspan="4" class="left bold">Số dư cuối kỳ</td>
+    <td></td><td></td><td></td><td></td>
+    <td><%= endQty %></td>
+    <td><%= endValue.toLocaleString("vi-VN") %></td>
+    <td></td>
+  </tr>
+</table>
+
+<table class="footer">
+  <tr>
+    <td>NGƯỜI LẬP BIỂU<br/><br/><br/>(Ký, họ tên)</td>
+    <td>NGƯỜI ĐẠI DIỆN HỘ KD<br/><br/><br/>(Ký, họ tên, đóng dấu)</td>
+  </tr>
+</table>
+
+</body>
+</html>
