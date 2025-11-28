@@ -11,7 +11,7 @@ import inventoryRoutes from "./routes/inventory.js";
 import userRoutes from "./routes/users.js";
 import payrollRoutes from "./routes/payrolls.js";
 import employeeRoutes from "./routes/employees.js";
-import reportRoutes from "./routes/reports.js";
+
 
 
 dotenv.config();
@@ -37,7 +37,7 @@ app.use("/api/inventory", inventoryRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/payrolls", payrollRoutes);
 app.use("/api/employees", employeeRoutes);
-app.use("/api/reports", reportRoutes);
+
 
 
 

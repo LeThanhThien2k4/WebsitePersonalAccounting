@@ -3,7 +3,7 @@ import { Outlet, NavLink } from "react-router-dom";
 import { Home, FileText, Wallet, Archive, Users, BookOpen, IdCard } from "lucide-react";
 
 const links = [
-  { to: "/", label: "Dashboard", icon: <Home size={18} /> },
+  { to: "/", label: "Trang chủ", icon: <Home size={18} /> },
   { to: "/receipts", label: "Phiếu thu", icon: <Wallet size={18} /> },
   { to: "/payments", label: "Phiếu chi", icon: <FileText size={18} /> },
   { to: "/inventory", label: "Tồn kho", icon: <Archive size={18} /> },

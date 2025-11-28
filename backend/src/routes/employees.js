@@ -143,5 +143,38 @@ router.delete("/:id", async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
+/* ===========================
+   TỔNG QUAN NHÂN SỰ / DASHBOARD
+   GET /api/employees/summary
+=========================== */
+router.get("/summary", async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Đếm nhân viên đang hoạt động
+    const employeeCount = await prisma.employee.count({
+      where: { createdBy: userId, isActive: true }
+    });
+
+    // Lấy kỳ lương tháng hiện tại
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+
+    const period = await prisma.payrollPeriod.findFirst({
+      where: { ownerId: userId, year, month },
+      include: { items: true }
+    });
+
+    const salaryMonth = period
+      ? period.items.reduce((sum, it) => sum + Number(it.netPay || 0), 0)
+      : 0;
+
+    res.json({ employeeCount, salaryMonth });
+  } catch (err) {
+    console.error("❌ Lỗi summary nhân sự:", err);
+    res.status(500).json({ error: "Không thể tải tổng quan nhân sự" });
+  }
+});
 
 export default router;

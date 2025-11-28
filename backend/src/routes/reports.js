@@ -603,4 +603,289 @@ router.get("/s5/pdf", async (req, res) => {
   }
 });
 
+/* =====================================================
+   DASHBOARD TỔNG HỢP
+   ===================================================== */
+router.get("/dashboard", async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+
+    const { start, end } = buildDateRange({ year, month });
+
+    /* === DOANH THU THÁNG === */
+    const revenueMonth = await prisma.receipt.aggregate({
+      where: { createdBy: userId, date: { gte: start, lt: end } },
+      _sum: { amount: true },
+    });
+
+    /* === CHI PHÍ THÁNG (Phiếu chi + Lương phải trả) === */
+    const expenseMonthRaw = await prisma.payment.aggregate({
+      where: { createdBy: userId, date: { gte: start, lt: end } },
+      _sum: { amount: true },
+    });
+
+    const payrollThisMonth = await prisma.payrollItem.findMany({
+      where: {
+        period: { ownerId: userId, month, year },
+      },
+      include: { payout: true },
+    });
+
+    const payrollCostThisMonth = payrollThisMonth.reduce((sum, it) => {
+      const paid = it.payout?.amount || 0;
+      return sum + (toN(it.netPay) - paid);
+    }, 0);
+
+    const expenseMonth =
+      toN(expenseMonthRaw._sum.amount) + payrollCostThisMonth;
+
+    /* === TỒN QUỸ === */
+    const totalReceipt = await prisma.receipt.aggregate({
+      where: { createdBy: userId },
+      _sum: { amount: true },
+    });
+
+    const totalPayment = await prisma.payment.aggregate({
+      where: { createdBy: userId },
+      _sum: { amount: true },
+    });
+
+    /* === THU/CHI HÔM NAY === */
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const todayReceipt = await prisma.receipt.aggregate({
+      where: { createdBy: userId, date: { gte: today, lt: tomorrow } },
+      _sum: { amount: true },
+    });
+
+    const todayPayment = await prisma.payment.aggregate({
+      where: { createdBy: userId, date: { gte: today, lt: tomorrow } },
+      _sum: { amount: true },
+    });
+
+    /* === GIÁ TRỊ TỒN KHO === */
+    const items = await prisma.inventoryItem.findMany({
+      where: { createdBy: userId },
+      select: { quantity: true, unitPriceIn: true },
+    });
+
+    const inventoryValue = items.reduce(
+      (sum, it) => sum + it.quantity * it.unitPriceIn,
+      0
+    );
+
+    /* === LƯƠNG PHẢI TRẢ (pendingPayroll) === */
+    const payrollItems = await prisma.payrollItem.findMany({
+      where: { period: { ownerId: userId } },
+      include: { payout: true },
+    });
+
+    const pendingPayroll = payrollItems.reduce((sum, it) => {
+      const paid = it.payout?.amount || 0;
+      return sum + (toN(it.netPay) - paid);
+    }, 0);
+
+    /* === SỐ NHÂN VIÊN === */
+    const employeesCount = await prisma.employee.count({
+      where: { createdBy: userId, isActive: true },
+    });
+
+    /* === TRẢ JSON CHO FE === */
+    res.json({
+      revenueMonth: toN(revenueMonth._sum.amount),
+      expenseMonth,
+      profitMonth: toN(revenueMonth._sum.amount) - expenseMonth,
+      cashBalance: toN(totalReceipt._sum.amount) - toN(totalPayment._sum.amount),
+
+      todayIncome: toN(todayReceipt._sum.amount),
+      todayExpense: toN(todayPayment._sum.amount),
+
+      inventoryValue: toN(inventoryValue),
+      pendingPayroll: toN(pendingPayroll),
+
+      employeesCount,
+    });
+
+  } catch (err) {
+    console.error("❌ Dashboard lỗi:", err);
+    res.status(500).json({ error: "Không thể tải dashboard" });
+  }
+});
+
+
+/* =====================================================
+   DÒNG TIỀN 12 THÁNG
+   ===================================================== */
+router.get("/cashflow", async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const year = Number(req.query.year);
+
+    const months = Array.from({ length: 12 }, (_, i) => i + 1);
+    const revenue = [];
+    const expense = [];
+
+    for (let m of months) {
+      const { start, end } = buildDateRange({ year, month: m });
+
+      const rv = await prisma.receipt.aggregate({
+        where: { createdBy: userId, date: { gte: start, lt: end } },
+        _sum: { amount: true },
+      });
+
+      const ex = await prisma.payment.aggregate({
+        where: { createdBy: userId, date: { gte: start, lt: end } },
+        _sum: { amount: true },
+      });
+
+      revenue.push(toN(rv._sum.amount));
+      expense.push(toN(ex._sum.amount));
+    }
+
+    res.json({ months, revenue, expense });
+  } catch (err) {
+    console.error("❌ Cashflow lỗi:", err);
+    res.status(500).json({ error: "Không thể tải dòng tiền" });
+  }
+});
+
+/* =====================================================
+   PHÂN BỔ CHI PHÍ THEO NHÓM (LƯƠNG + PHIẾU CHI)
+   ===================================================== */
+router.get("/expense-breakdown", async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const [year, month] = req.query.month.split("-").map(Number);
+
+    const { start, end } = buildDateRange({ year, month });
+
+    /* ==== 1) Lấy danh sách phiếu chi tháng ==== */
+    const payments = await prisma.payment.findMany({
+      where: { createdBy: userId, date: { gte: start, lt: end } },
+    });
+
+    /* ==== 2) Tính lương phải trả trong tháng ==== */
+    const payrollThisMonth = await prisma.payrollItem.findMany({
+      where: {
+        period: { month, year, ownerId: userId }
+      },
+      include: { payout: true }
+    });
+
+    const payrollCost = payrollThisMonth.reduce((sum, it) => {
+      const paid = it.payout?.amount || 0;
+      return sum + (toN(it.netPay) - paid);
+    }, 0);
+
+    /* ==== 3) Gom nhóm chi phí ==== */
+    const groups = {
+      "Nhân công": payrollCost,
+      "Điện nước": 0,
+      "Chi phí khác": 0,
+    };
+
+    payments.forEach(p => {
+      const r = (p.reason || "").toLowerCase();
+
+      if (r.includes("lương")) {
+        groups["Nhân công"] += toN(p.amount);
+      } else if (r.includes("điện") || r.includes("nước")) {
+        groups["Điện nước"] += toN(p.amount);
+      } else {
+        groups["Chi phí khác"] += toN(p.amount);
+      }
+    });
+
+    res.json(
+      Object.entries(groups).map(([label, value]) => ({ label, value }))
+    );
+
+  } catch (err) {
+    console.error("❌ Expense breakdown lỗi:", err);
+    res.status(500).json({ error: "Không thể tải dữ liệu chi phí" });
+  }
+});
+
+/* =====================================================
+   GIAO DỊCH GẦN NHẤT
+   ===================================================== */
+router.get("/recent-transactions", async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const limit = Number(req.query.limit || 8);
+
+    const receipts = await prisma.receipt.findMany({
+      where: { createdBy: userId },
+      orderBy: { date: "desc" },
+      take: limit,
+    });
+
+    const payments = await prisma.payment.findMany({
+      where: { createdBy: userId },
+      orderBy: { date: "desc" },
+      take: limit,
+    });
+
+    let rows = [
+      ...receipts.map((r) => ({
+        id: r.id,
+        type: "THU",
+        description: r.reason,
+        date: formatDateVN(r.date),
+        amount: toN(r.amount),
+        account: "S1",
+      })),
+      ...payments.map((p) => ({
+        id: p.id,
+        type: "CHI",
+        description: p.reason,
+        date: formatDateVN(p.date),
+        amount: toN(p.amount),
+        account: "S3",
+      })),
+    ];
+
+    rows.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    res.json(rows.slice(0, limit));
+  } catch (err) {
+    console.error("❌ Recent transactions lỗi:", err);
+    res.status(500).json({ error: "Không thể tải giao dịch" });
+  }
+});
+
+/* =====================================================
+   GIÁ TRỊ TỒN KHO
+   ===================================================== */
+router.get("/inventory-value", async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const items = await prisma.inventoryItem.findMany({
+      where: { createdBy: userId },
+      select: { quantity: true, unitPriceIn: true },
+    });
+
+    const total = items.reduce(
+      (sum, it) => sum + it.quantity * it.unitPriceIn,
+      0
+    );
+
+    res.json({ value: total });
+  } catch (err) {
+    console.error("❌ Lỗi inventory-value:", err);
+    res.status(500).json({ error: "Không thể tính giá trị tồn kho" });
+  }
+});
+
+/* =====================================================
+   EXPORT ROUTER
+   ===================================================== */
 export default router;
