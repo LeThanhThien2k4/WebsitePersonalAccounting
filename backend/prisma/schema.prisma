@@ -61,22 +61,18 @@ model InventoryItem {
   quantity     Int            @default(0)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
-
-  createdBy    Int            // user ID
+  createdBy    Int
   category     String?
-  code         String         // bỏ @unique để cho phép trùng giữa các user
+  code         String
   note         String?
   unitPriceIn  Decimal?       @db.Decimal(12, 2)
   unitPriceOut Decimal?       @db.Decimal(12, 2)
-
   user         User           @relation(fields: [createdBy], references: [id])
   transactions InventoryTxn[]
   items        Item[]
 
-  // UNIQUE theo tổ hợp (code + createdBy)
-  @@unique([code, createdBy])
+  @@unique([code, createdBy], map: "inventoryitem_code_createdby_unique")
 }
-
 
 model InventoryTxn {
   id            Int           @id @default(autoincrement())
@@ -93,7 +89,7 @@ model InventoryTxn {
 model Voucher {
   id           Int      @id @default(autoincrement())
   type         String
-  voucherNo    String                 // bỏ @unique ở đây
+  voucherNo    String   @unique
   date         DateTime @default(now())
   supplier     String?
   receiver     String?
@@ -107,11 +103,7 @@ model Voucher {
   createdBy    Int?
   items        Item[]
   user         User?    @relation(fields: [createdBy], references: [id])
-
-  // Mỗi user có thể có PNK2025...-001 riêng
-  @@unique([voucherNo, createdBy])
 }
-
 
 model Item {
   id              Int            @id @default(autoincrement())
@@ -137,7 +129,7 @@ model PasswordReset {
 
 model Employee {
   id           Int             @id @default(autoincrement())
-  code         String?         
+  code         String?         @unique
   fullName     String
   position     String?
   joinDate     DateTime?
@@ -152,7 +144,6 @@ model Employee {
   creator      User?           @relation(fields: [createdBy], references: [id])
   payrollItems PayrollItem[]
   payouts      PayrollPayout[]
-  @@unique([code, createdBy])
 
   @@index([isActive])
   @@index([fullName])
@@ -250,6 +241,12 @@ model PayrollPayout {
 
   @@index([employeeId])
   @@index([payDate])
+}
+
+model playing_with_neon {
+  id    Int    @id @default(autoincrement())
+  name  String
+  value Float? @db.Real
 }
 
 enum PayrollStatus {
