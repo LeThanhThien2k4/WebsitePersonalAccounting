@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Sổ theo dõi nghĩa vụ thuế với NSNN (S4-HKD)</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        font-family: "Times New Roman", serif;
+        font-size: 12px;
+      }
+
+      body {
+        margin: 20px;
+      }
+
+      .header-left {
+        float: left;
+        width: 60%;
+      }
+
+      .header-right {
+        float: right;
+        width: 40%;
+        text-align: center;
+      }
+
+      .clear {
+        clear: both;
+      }
+
+      .title-block {
+        text-align: center;
+        margin-top: 10px;
+        margin-bottom: 6px;
+      }
+
+      .title-block h2 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: bold;
+      }
+
+      .subtitle {
+        text-align: center;
+        margin-bottom: 4px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+      }
+
+      th,
+      td {
+        border: 1px solid #000;
+        padding: 3px 4px;
+      }
+
+      th {
+        text-align: center;
+        vertical-align: middle;
+      }
+
+      td.num {
+        text-align: right;
+      }
+
+      td.center {
+        text-align: center;
+      }
+
+      .bold {
+        font-weight: bold;
+      }
+
+      .sign-block {
+        width: 100%;
+        margin-top: 25px;
+        text-align: center;
+      }
+
+      .sign-col {
+        width: 50%;
+        display: inline-block;
+        vertical-align: top;
+      }
+
+      .italic {
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- HEADER -->
+    <div class="header-left">
+      <div><b>HỘ, CÁ NHÂN KINH DOANH:</b> <%= businessName %></div>
+      <div><b>Địa chỉ:</b> <%= address %></div>
+    </div>
+    <div class="header-right">
+      <div><b>Mẫu số S4-HKD</b></div>
+      <div>(Ban hành kèm theo Thông tư số 88/2021/TT-BTC</div>
+      <div>ngày 11/10/2021 của Bộ Tài chính)</div>
+    </div>
+    <div class="clear"></div>
+
+    <!-- TITLE -->
+    <div class="title-block">
+      <h2>SỔ THEO DÕI TÌNH HÌNH THỰC HIỆN NGHĨA VỤ THUẾ VỚI NSNN</h2>
+    </div>
+    <div class="subtitle">
+      Loại thuế: <%= taxType %>
+    </div>
+    <div class="subtitle">
+      Năm: <%= year %> &nbsp;&nbsp;&nbsp; Đơn vị tính: đồng
+    </div>
+
+    <!-- TABLE -->
+    <table>
+      <tr>
+        <th colspan="2">Chứng từ</th>
+        <th rowspan="2">Diễn giải<br />(C)</th>
+        <th rowspan="2">Số thuế phải nộp<br />(1)</th>
+        <th rowspan="2">Số thuế đã nộp<br />(2)</th>
+        <th rowspan="2">Ghi chú<br />(3)</th>
+      </tr>
+      <tr>
+        <th>Số hiệu<br />(A)</th>
+        <th>Ngày, tháng<br />(B)</th>
+      </tr>
+
+      <!-- Số dư đầu kỳ -->
+      <tr class="bold">
+        <td colspan="2" class="center">Số dư đầu kỳ</td>
+        <td></td>
+        <td class="num"><%= opening.must.toLocaleString("vi-VN") %></td>
+        <td class="num"><%= opening.paid.toLocaleString("vi-VN") %></td>
+        <td></td>
+      </tr>
+
+      <!-- Phát sinh trong kỳ -->
+      <% if (rows && rows.length) { %>
+        <% rows.forEach(function(r) { %>
+          <tr>
+            <td class="center"><%= r.docNo %></td>
+            <td class="center"><%= r.dateVN %></td>
+            <td><%= r.desc %></td>
+            <td class="num"><%= r.mustPay.toLocaleString("vi-VN") %></td>
+            <td class="num"><%= r.paid.toLocaleString("vi-VN") %></td>
+            <td><%= r.note || "" %></td>
+          </tr>
+        <% }) %>
+      <% } else { %>
+        <tr>
+          <td colspan="6" class="center">
+            (Chưa có phát sinh trong kỳ)
+          </td>
+        </tr>
+      <% } %>
+
+      <!-- Cộng số phát sinh trong kỳ -->
+      <tr class="bold">
+        <td colspan="3">Cộng số phát sinh trong kỳ</td>
+        <td class="num"><%= totals.must.toLocaleString("vi-VN") %></td>
+        <td class="num"><%= totals.paid.toLocaleString("vi-VN") %></td>
+        <td></td>
+      </tr>
+
+      <!-- Số dư cuối kỳ -->
+      <tr class="bold">
+        <td colspan="3">Số dư cuối kỳ</td>
+        <td class="num"><%= closing.must.toLocaleString("vi-VN") %></td>
+        <td class="num"><%= closing.paid.toLocaleString("vi-VN") %></td>
+        <td></td>
+      </tr>
+    </table>
+
+    <div style="margin-top: 10px; font-size: 11px;">
+      - Sổ này có ...... trang, đánh số từ trang 01 đến trang ...<br />
+      - Ngày mở sổ: ............
+    </div>
+
+    <!-- SIGN -->
+    <div class="sign-block">
+      <div class="sign-col">
+        <div class="bold">NGƯỜI LẬP SỔ</div>
+        <div class="italic">(Ký, họ tên)</div>
+      </div>
+      <div class="sign-col">
+        <div class="italic">
+          Ngày ..... tháng ..... năm .....
+        </div>
+        <div class="bold">
+          NGƯỜI ĐẠI DIỆN HỘ KINH DOANH/CÁ NHÂN KINH DOANH
+        </div>
+        <div class="italic">(Ký, họ tên, đóng dấu)</div>
+      </div>
+    </div>
+  </body>
+</html>

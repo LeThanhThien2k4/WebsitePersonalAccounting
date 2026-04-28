@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>S1-HKD</title>
+  <style>
+    body { font-family: "Times New Roman", serif; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { border: 1px solid #000; padding: 4px 6px; }
+    .no-border td { border: none !important; }
+    .bold { font-weight: bold; }
+    .center { text-align: center; }
+    .left { text-align: left; }
+    .right { text-align: right; }
+    .title { font-size: 18px; font-weight: bold; text-align: center; margin-top: 10px; }
+    .subtitle { text-align: center; margin-bottom: 10px; }
+    .footer td { border: none; text-align: center; padding-top: 40px; }
+  </style>
+</head>
+<body>
+
+<table class="no-border">
+  <tr>
+    <td class="left bold">
+      HỘ, CÁ NHÂN KINH DOANH: <%= businessName || "" %>
+    </td>
+    <td class="right">
+      Mẫu số S1-HKD<br/>
+      <span style="font-size: 11px">
+        (Ban hành kèm theo Thông tư 88/2021/TT-BTC)
+      </span>
+    </td>
+  </tr>
+  <tr>
+    <td class="left bold">Địa chỉ: <%= address || "" %></td>
+    <td></td>
+  </tr>
+</table>
+
+<div class="title">SỔ CHI TIẾT DOANH THU BÁN HÀNG HOÁ, DỊCH VỤ</div>
+<div class="subtitle">
+  Tên địa điểm kinh doanh: <%= businessName || "" %><br/>
+  Năm: <%= year %>
+</div>
+
+<table>
+  <tr class="bold center">
+    <td rowspan="2">Ngày ghi sổ<br/>(A)</td>
+    <td colspan="2">Chứng từ</td>
+    <td rowspan="2">Diễn giải<br/>(D)</td>
+    <td colspan="4">Doanh thu bán hàng hoá, dịch vụ theo nhóm ngành nghề</td>
+    <td rowspan="2">Ghi chú<br/>(12)</td>
+  </tr>
+  <tr class="bold center">
+    <td>Số hiệu<br/>(B)</td>
+    <td>Ngày tháng<br/>(C)</td>
+    <td>(1) Phân phối</td>
+    <td>(2) Dịch vụ</td>
+    <td>(3) Xây dựng<br/>vận tải</td>
+    <td>(4) Hoạt động khác</td>
+  </tr>
+  <tr class="bold center">
+    <td>A</td><td>B</td><td>C</td><td>D</td>
+    <td>1</td><td>2</td><td>3</td><td>4</td>
+    <td>12</td>
+  </tr>
+
+  <% rows.forEach(function(r) { %>
+    <tr>
+      <td class="center"><%= r.dateVN %></td>
+      <td class="center"><%= r.no %></td>
+      <td class="center"><%= r.docDateVN %></td>
+      <td class="left"><%= r.desc %></td>
+      <td class="right"><%= r.col1.toLocaleString("vi-VN") %></td>
+      <td class="right">0</td>
+      <td class="right">0</td>
+      <td class="right">0</td>
+      <td></td>
+    </tr>
+  <% }) %>
+
+  <tr class="bold">
+    <td colspan="4" class="center">Tổng cộng</td>
+    <td class="right"><%= totals.col1.toLocaleString("vi-VN") %></td>
+    <td class="right">0</td>
+    <td class="right">0</td>
+    <td class="right">0</td>
+    <td></td>
+  </tr>
+</table>
+
+<table class="footer">
+  <tr>
+    <td>NGƯỜI LẬP BIỂU<br/><br/><br/>(Ký, họ tên)</td>
+    <td>NGƯỜI ĐẠI DIỆN HỘ KD<br/><br/><br/>(Ký, họ tên, đóng dấu)</td>
+  </tr>
+</table>
+
+</body>
+</html>

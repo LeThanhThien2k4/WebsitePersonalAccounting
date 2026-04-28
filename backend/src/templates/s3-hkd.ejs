@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>S3-HKD</title>
+  <style>
+    body { font-family: "Times New Roman", serif; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { border: 1px solid #000; padding: 4px 6px; }
+    .no-border td { border: none !important; }
+    .bold { font-weight: bold; }
+    .center { text-align: center; }
+    .left { text-align: left; }
+    .right { text-align: right; }
+    .title { font-size: 18px; font-weight: bold; text-align: center; margin-top: 10px; }
+    .subtitle { text-align: center; margin-bottom: 10px; }
+    .footer td { border: none; text-align: center; padding-top: 40px; }
+  </style>
+</head>
+<body>
+
+<table class="no-border">
+  <tr>
+    <td class="left bold">HỘ, CÁ NHÂN KINH DOANH: <%= businessName || "" %></td>
+    <td class="right">
+      Mẫu số S3-HKD<br/>
+      <span style="font-size: 11px">(Ban hành kèm theo Thông tư 88/2021/TT-BTC)</span>
+    </td>
+  </tr>
+  <tr>
+    <td class="left bold">Địa chỉ: <%= address || "" %></td>
+    <td></td>
+  </tr>
+</table>
+
+<div class="title">SỔ CHI PHÍ SẢN XUẤT, KINH DOANH</div>
+<div class="subtitle">
+  Tên địa điểm kinh doanh: <%= businessName || "" %><br/>
+  Năm: <%= year %>
+</div>
+
+<table>
+  <tr class="bold center">
+    <td rowspan="2">Ngày, tháng ghi sổ<br/>(A)</td>
+    <td colspan="2">Chứng từ</td>
+    <td rowspan="2">Diễn giải<br/>(D)</td>
+    <td rowspan="2">Tổng số tiền<br/>(1)</td>
+    <td colspan="7">Tập hợp chi phí theo các yếu tố sản xuất, kinh doanh</td>
+  </tr>
+  <tr class="bold center">
+    <td>Số hiệu<br/>(B)</td>
+    <td>Ngày tháng<br/>(C)</td>
+    <td>Chi phí nhân công<br/>(2)</td>
+    <td>Chi phí điện<br/>(3)</td>
+    <td>Chi phí nước<br/>(4)</td>
+    <td>Chi phí viễn thông<br/>(5)</td>
+    <td>Chi phí thuê kho bãi,<br/>mặt bằng<br/>(6)</td>
+    <td>Chi phí quản lý<br/>(7)</td>
+    <td>Chi phí khác<br/>(8)</td>
+  </tr>
+  <tr class="bold center">
+    <td>A</td><td>B</td><td>C</td><td>D</td>
+    <td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td>
+  </tr>
+
+  <% rows.forEach(function(r) { %>
+    <tr>
+      <td class="center"><%= r.dateVN %></td>
+      <td class="center"><%= r.docNo %></td>
+      <td class="center"><%= r.dateVN %></td>
+      <td class="left"><%= r.desc || "" %></td>
+      <td class="right"><%= r.total.toLocaleString("vi-VN") %></td>
+      <td class="right">0</td>
+      <td class="right">0</td>
+      <td class="right">0</td>
+      <td class="right">0</td>
+      <td class="right">0</td>
+      <td class="right">0</td>
+      <td class="right">0</td>
+    </tr>
+  <% }) %>
+
+  <tr class="bold">
+    <td colspan="4" class="center">Tổng cộng</td>
+    <td class="right"><%= totals.total.toLocaleString("vi-VN") %></td>
+    <td class="right">0</td>
+    <td class="right">0</td>
+    <td class="right">0</td>
+    <td class="right">0</td>
+    <td class="right">0</td>
+    <td class="right">0</td>
+    <td class="right">0</td>
+  </tr>
+</table>
+
+<table class="footer">
+  <tr>
+    <td>NGƯỜI LẬP BIỂU<br/><br/><br/>(Ký, họ tên)</td>
+    <td>NGƯỜI ĐẠI DIỆN HỘ KD<br/><br/><br/>(Ký, họ tên, đóng dấu)</td>
+  </tr>
+</table>
+
+</body>
+</html>

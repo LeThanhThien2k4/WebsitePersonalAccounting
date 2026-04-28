@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: "Times New Roman", serif;
+      font-size: 13px;
+      color: black;
+      line-height: 1.6;
+      padding: 30px;
+      width: 794px;
+      margin: 0 auto;
+      background: white;
+    }
+    table { border-collapse: collapse; width: 100%; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .italic { font-style: italic; }
+    .bold { font-weight: bold; }
+    .sign {
+      width: 24%;
+      text-align: center;
+      vertical-align: top;
+    }
+    .sign .space { height: 70px; }
+  </style>
+</head>
+<body>
+  <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+    <div>
+      <div><b>HỘ, CÁ NHÂN KINH DOANH:</b> <%= businessName || "..................." %></div>
+      <div><b>Địa chỉ:</b> <%= address || "..........................................." %></div>
+    </div>
+    <div class="text-right">
+      <b>Mẫu số 02 – TT</b><br>
+      <div style="font-size:11px; line-height:14px;">
+        (Ban hành kèm theo Thông tư số 88/2021/TT-BTC<br>
+        ngày 11 tháng 10 năm 2021 của Bộ Tài chính)
+      </div>
+    </div>
+  </div>
+
+  <h2 class="text-center bold" style="margin-top:16px;">PHIẾU CHI</h2>
+
+  <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+    <div>Ngày ...... tháng ...... năm ......</div>
+    <div>Quyển số: ............ &nbsp;&nbsp; Số: ....................</div>
+  </div>
+
+  <div>Họ và tên người nhận tiền: <%= payee || ".................................................." %></div>
+  <div>Địa chỉ: <%= addressPayee || ".................................................." %></div>
+  <div>Lý do chi: <%= reason || ".................................................." %></div>
+  <div>Số tiền: <%= Number(amount || 0).toLocaleString("vi-VN") %> đồng</div>
+  <div>(Viết bằng chữ): <%= amountText %></div>
+  <div>Kèm theo: <%= attach || ".................................................." %> &nbsp;&nbsp; Chứng từ gốc: ...........</div>
+
+  <div class="text-right" style="margin-top:24px;">Ngày ..... tháng ..... năm .....</div>
+
+  <table style="margin-top:20px;">
+    <tr>
+      <td class="sign">
+        <b>NGƯỜI ĐẠI DIỆN<br>HỘ/CN KINH DOANH</b><br>
+        <div class="italic">(Ký, họ tên, đóng dấu)</div>
+        <div class="space"></div>
+      </td>
+      <td class="sign">
+        <b>NGƯỜI LẬP BIỂU</b><br>
+        <div class="italic">(Ký, họ tên)</div>
+        <div class="space"></div>
+      </td>
+      <td class="sign">
+        <b>NGƯỜI NHẬN TIỀN</b><br>
+        <div class="italic">(Ký, họ tên)</div>
+        <div class="space"></div>
+      </td>
+      <td class="sign">
+        <b>THỦ QUỸ</b><br>
+        <div class="italic">(Ký, họ tên)</div>
+        <div class="space"></div>
+      </td>
+    </tr>
+  </table>
+
+  <div style="margin-top:30px;">
+    <b>Đã nhận đủ số tiền (viết bằng chữ):</b> <%= amountText %>
+  </div>
+</body>
+</html>
